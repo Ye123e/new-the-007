@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🖥️ 网络渗透终端</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        /* CRT 扫描线效果 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 65, 0.03) 0px,
+                rgba(0, 255, 65, 0.03) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .terminal {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+            letter-spacing: 4px;
+        }
+        .header .subtitle {
+            font-size: 11px;
+            color: #00aa2a;
+            margin-top: 8px;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        .status-bar .locked { color: #ff1744; }
+        .status-bar .unlocked { color: #00e676; }
+        .panel {
+            background: rgba(0, 20, 0, 0.6);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+            padding-bottom: 5px;
+        }
+        .btn {
+            padding: 8px 16px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid rgba(0, 255, 65, 0.4);
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+            transition: all 0.2s;
+            margin: 3px;
+        }
+        .btn:hover {
+            background: rgba(0, 255, 65, 0.2);
+            box-shadow: 0 0 8px rgba(0, 255, 65, 0.3);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-danger {
+            border-color: rgba(255, 23, 68, 0.4);
+            color: #ff1744;
+            background: rgba(255, 23, 68, 0.05);
+        }
+        .btn-danger:hover {
+            background: rgba(255, 23, 68, 0.15);
+            box-shadow: 0 0 8px rgba(255, 23, 68, 0.3);
+        }
+        .console-output {
+            background: rgba(0, 10, 0, 0.8);
+            border: 1px solid rgba(0, 255, 65, 0.15);
+            border-radius: 4px;
+            padding: 12px;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .console-output .line {
+            margin: 2px 0;
+        }
+        .console-output .prompt { color: #00aa2a; }
+        .console-output .success { color: #00e676; }
+        .console-output .error { color: #ff1744; }
+        .console-output .warning { color: #ff9800; }
+        .console-output .info { color: #4fc3f7; }
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 8px;
+            background: rgba(0, 20, 0, 0.8);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+            border-radius: 3px;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #00ff41;
+            box-shadow: 0 0 5px rgba(0, 255, 65, 0.3);
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.05);
+            font-size: 12px;
+        }
+        .data-row .label { color: #00aa2a; }
+        .data-row .value { color: #00ff41; font-weight: bold; }
+        .tool-item {
+            padding: 8px;
+            background: rgba(0, 255, 65, 0.03);
+            border: 1px solid rgba(0, 255, 65, 0.1);
+            border-radius: 3px;
+            margin: 4px 0;
+            font-size: 11px;
+        }
+        .tool-item .tool-name { color: #00e676; font-weight: bold; }
+        .tool-item .tool-uses { color: #888; }
+        .mini-game {
+            text-align: center;
+            padding: 20px;
+        }
+        .mini-game .target-code {
+            font-size: 28px;
+            letter-spacing: 8px;
+            color: #ff1744;
+            text-shadow: 0 0 10px rgba(255, 23, 68, 0.5);
+            margin: 15px 0;
+        }
+        .mini-game .timer {
+            font-size: 18px;
+            color: #ff9800;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff41, #00e676);
+            transition: width 0.3s;
+        }
+        .progress-bar .fill.danger {
+            background: linear-gradient(90deg, #ff9800, #ff1744);
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #00aa2a;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .back-link a:hover { color: #00ff41; }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background: #00ff41;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div class="header">
+            <h1>🖥️ 网络渗透终端</h1>
+            <div class="subtitle">NETWORK INFILTRATION TERMINAL v3.0.1 | 仅供模拟测试使用</div>
+        </div>
+
+        <div class="status-bar" id="statusBar">
+            <span>状态: <span id="lockStatus">检测中...</span></span>
+            <span>追踪分数: <span id="traceScore">--</span></span>
+            <span>暗网信誉: <span id="rep">--</span></span>
+        </div>
+
+        <!-- 解锁提示 -->
+        <div class="panel" id="unlockPanel" style="display:none;">
+            <div class="panel-title">🔒 功能锁定</div>
+            <div style="font-size:12px;color:#ff9800;">
+                黑客功能未解锁。需要满足以下条件之一：<br>
+                • 总资产 ≥ ¥50,000<br>
+                • 拥有「黑客工作站」（暗网购买）<br>
+                • 暗网信誉度 ≥ 10
+            </div>
+            <div style="margin-top:10px;">
+                <a href="darknet-market.html" class="btn">🧅 前往暗网黑市</a>
+            </div>
+        </div>
+
+        <!-- 主界面 -->
+        <div id="mainPanel">
+            <!-- 扫描面板 -->
+            <div class="panel">
+                <div class="panel-title">🔍 目标扫描</div>
+                <div id="scanResult" style="font-size:12px;color:#888;">点击扫描读取 invest-sim.html 存档数据...</div>
+                <div style="margin-top:10px;">
+                    <button class="btn" onclick="scanTarget()">🔍 扫描目标系统</button>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- 数据摘要 -->
+                <div class="panel">
+                    <div class="panel-title">📊 目标数据摘要</div>
+                    <div id="dataSummary">
+                        <div class="data-row"><span class="label">现金:</span><span class="value">--</span></div>
+                        <div class="data-row"><span class="label">总资产:</span><span class="value">--</span></div>
+                        <div class="data-row"><span class="label">回合数:</span><span class="value">--</span></div>
+                        <div class="data-row"><span class="label">加密货币:</span><span class="value">--</span></div>
+                    </div>
+                </div>
+
+                <!-- 工具箱 -->
+                <div class="panel">
+                    <div class="panel-title">🧰 暗网工具箱</div>
+                    <div id="toolBox">
+                        <div style="font-size:12px;color:#888;">暂无工具。前往暗网黑市购买。</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 破解母锁 -->
+            <div class="panel">
+                <div class="panel-title">🔐 破解母锁令牌</div>
+                <div style="font-size:11px;color:#888;margin-bottom:8px;">
+                    破解 invest-sim.html 的母锁令牌，成功后可绕过验证直接修改数据。<br>
+                    风险: +25 追踪分数 | 成功率受暗网工具影响
+                </div>
+                <div id="crackGame" style="display:none;">
+                    <div class="mini-game">
+                        <div style="font-size:12px;color:#ff9800;">在限时内输入下方代码片段！</div>
+                        <div class="target-code" id="targetCode">----</div>
+                        <div class="timer" id="crackTimer">5.00s</div>
+                        <div class="progress-bar"><div class="fill danger" id="timerBar" style="width:100%"></div></div>
+                        <div class="input-group">
+                            <input type="text" id="crackInput" placeholder="输入代码..." maxlength="4" autocomplete="off">
+                            <button class="btn" onclick="submitCrack()">提交</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-danger" onclick="startCrackGame()">🔐 开始破解</button>
+            </div>
+
+            <!-- 数据篡改 -->
+            <div class="panel">
+                <div class="panel-title">✏️ 数据篡改</div>
+                <div style="font-size:11px;color:#ff9800;margin-bottom:8px;">⚠️ 每次篡改增加 15~40 追踪分数</div>
+                <div class="grid-2">
+                    <div>
+                        <div style="font-size:12px;color:#00aa2a;margin-bottom:6px;">修改现金</div>
+                        <div class="input-group">
+                            <input type="number" id="hackCash" placeholder="新现金金额">
+                            <button class="btn btn-danger" onclick="hackCash()">执行</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:#00aa2a;margin-bottom:6px;">修改资产价格</div>
+                        <div class="input-group">
+                            <select id="hackAsset" style="flex:1;padding:6px;background:rgba(0,20,0,0.8);border:1px solid rgba(0,255,65,0.3);color:#00ff41;">
+                                <option value="">选择资产</option>
+                            </select>
+                            <input type="number" id="hackPrice" placeholder="新价格" style="flex:1;">
+                            <button class="btn btn-danger" onclick="hackPrice()">执行</button>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:10px;">
+                    <div style="font-size:12px;color:#00aa2a;margin-bottom:6px;">跳过回合</div>
+                    <div class="input-group">
+                        <input type="number" id="hackSkip" placeholder="跳过回合数" value="100">
+                        <button class="btn btn-danger" onclick="hackSkipRounds()">执行</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 痕迹清理 -->
+            <div class="panel">
+                <div class="panel-title">🧹 痕迹清理</div>
+                <div style="font-size:11px;color:#888;margin-bottom:8px;">
+                    降低追踪分数，避免被监管发现。<br>
+                    基础清理: -20 追踪分数 | 使用「防火墙破解器」: -50 追踪分数
+                </div>
+                <button class="btn" onclick="cleanTraces()">🧹 基础清理 (-20)</button>
+                <button class="btn" onclick="cleanTracesAdvanced()">🔥 深度清理 (-50)</button>
+            </div>
+
+            <!-- 控制台输出 -->
+            <div class="panel">
+                <div class="panel-title">📟 系统日志</div>
+                <div class="console-output" id="consoleOutput">
+                    <div class="line prompt">$ 渗透终端已启动...</div>
+                    <div class="line info">等待目标系统扫描...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="invest-sim.html">← 返回投资模拟器</a> |
+            <a href="darknet-market.html">🧅 暗网黑市 →</a> |
+            <a href="bank-attack.html">🏦 银行攻击 →</a>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'investSimState_v13';
+        let gameState = null;
+        let crackTimer = null;
+        let crackTimeLeft = 5;
+        let currentTargetCode = '';
+
+        // 打字机输出
+        function log(msg, type = 'info') {
+            const consoleEl = document.getElementById('consoleOutput');
+            const line = document.createElement('div');
+            line.className = 'line ' + type;
+            line.textContent = '$ ' + msg;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        // 加载存档
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch (e) {
+                log('读取存档失败: ' + e.message, 'error');
+                return null;
+            }
+        }
+
+        // 保存存档
+        function saveState(state) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                return true;
+            } catch (e) {
+                log('保存存档失败: ' + e.message, 'error');
+                return false;
+            }
+        }
+
+        // 检查解锁条件
+        function checkUnlock(state) {
+            if (!state) return false;
+            if (state.hackLockedRounds > 0) return false;
+            const totalAssets = (state.cash || 0) + (state.assets || []).reduce((s, a) => s + (a.holding || 0) * (a.price || 0), 0);
+            const hasWorkstation = (state.hackTools || []).some(t => t.id === 'workstation');
+            const rep = state.darknetReputation || 0;
+            return totalAssets >= 50000 || hasWorkstation || rep >= 10;
+        }
+
+        // 初始化
+        function init() {
+            gameState = loadState();
+            if (!gameState) {
+                log('未找到 invest-sim.html 存档！请先启动投资模拟器。', 'error');
+                document.getElementById('lockStatus').textContent = '无存档';
+                document.getElementById('lockStatus').className = 'locked';
+                document.getElementById('mainPanel').style.display = 'none';
+                document.getElementById('unlockPanel').style.display = 'block';
+                return;
+            }
+
+            const unlocked = checkUnlock(gameState);
+            const locked = gameState.hackLockedRounds > 0;
+
+            document.getElementById('traceScore').textContent = gameState.hackTraceScore || 0;
+            document.getElementById('rep').textContent = gameState.darknetReputation || 0;
+
+            if (locked) {
+                document.getElementById('lockStatus').textContent = '锁定中 (' + gameState.hackLockedRounds + '回合)';
+                document.getElementById('lockStatus').className = 'locked';
+                document.getElementById('mainPanel').style.display = 'none';
+                document.getElementById('unlockPanel').style.display = 'block';
+                document.querySelector('#unlockPanel .panel-title').textContent = '🔒 功能锁定中';
+                document.querySelector('#unlockPanel div').innerHTML = '黑客功能被锁定！剩余 ' + gameState.hackLockedRounds + ' 回合后解锁。<br>原因：黑客行为被监管发现。';
+                return;
+            }
+
+            if (!unlocked) {
+                document.getElementById('lockStatus').textContent = '未解锁';
+                document.getElementById('lockStatus').className = 'locked';
+                document.getElementById('mainPanel').style.display = 'none';
+                document.getElementById('unlockPanel').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('lockStatus').textContent = '已解锁';
+            document.getElementById('lockStatus').className = 'unlocked';
+            document.getElementById('mainPanel').style.display = 'block';
+            document.getElementById('unlockPanel').style.display = 'none';
+
+            // 填充资产选择
+            const select = document.getElementById('hackAsset');
+            select.innerHTML = '<option value="">选择资产</option>';
+            (gameState.assets || []).forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.id;
+                opt.textContent = a.emoji + ' ' + a.name;
+                select.appendChild(opt);
+            });
+
+            // 显示工具
+            renderTools();
+
+            log('目标系统已连接。追踪分数: ' + (gameState.hackTraceScore || 0), 'success');
+        }
+
+        // 渲染工具箱
+        function renderTools() {
+            const box = document.getElementById('toolBox');
+            const tools = gameState.hackTools || [];
+            if (tools.length === 0) {
+                box.innerHTML = '<div style="font-size:12px;color:#888;">暂无工具。前往暗网黑市购买。</div>';
+                return;
+            }
+            box.innerHTML = tools.map(t =>
+                '<div class="tool-item"><span class="tool-name">' + t.name + '</span> <span class="tool-uses">(剩余 ' + t.usesLeft + ' 次)</span></div>'
+            ).join('');
+        }
+
+        // 扫描目标
+        function scanTarget() {
+            gameState = loadState();
+            if (!gameState) { log('存档丢失！', 'error'); return; }
+
+            const cash = gameState.cash || 0;
+            const assets = gameState.assets || [];
+            const totalAssets = cash + assets.reduce((s, a) => s + (a.holding || 0) * (a.price || 0), 0);
+            const round = gameState.round || 0;
+            const crypto = assets.find(a => a.id === 'crypto');
+            const eth = assets.find(a => a.id === 'eth');
+            const cryptoValue = ((crypto?.holding || 0) * (crypto?.price || 0)) + ((eth?.holding || 0) * (eth?.price || 0));
+
+            document.getElementById('dataSummary').innerHTML =
+                '<div class="data-row"><span class="label">现金:</span><span class="value">¥' + cash.toFixed(2) + '</span></div>' +
+                '<div class="data-row"><span class="label">总资产:</span><span class="value">¥' + totalAssets.toFixed(2) + '</span></div>' +
+                '<div class="data-row"><span class="label">回合数:</span><span class="value">' + round + '</span></div>' +
+                '<div class="data-row"><span class="label">加密货币:</span><span class="value">¥' + cryptoValue.toFixed(2) + '</span></div>';
+
+            document.getElementById('scanResult').innerHTML =
+                '<span style="color:#00e676;">✓ 扫描完成</span> | 发现 ' + assets.length + ' 个资产 | 母锁状态: ' + (gameState._masterToken ? '活跃' : '未知');
+
+            log('扫描完成。总资产: ¥' + totalAssets.toFixed(2) + ', 回合: ' + round, 'success');
+        }
+
+        // 开始破解游戏
+        function startCrackGame() {
+            gameState = loadState();
+            if (!gameState) { log('存档丢失！', 'error'); return; }
+
+            const hasCracker = (gameState.hackTools || []).some(t => t.id === 'advanced_cracker');
+            const timeLimit = hasCracker ? 8 : 5;
+            crackTimeLeft = timeLimit;
+            currentTargetCode = Math.random().toString(36).slice(2, 6).toUpperCase();
+
+            document.getElementById('targetCode').textContent = currentTargetCode;
+            document.getElementById('crackGame').style.display = 'block';
+            document.getElementById('crackInput').value = '';
+            document.getElementById('crackInput').focus();
+
+            log('母锁破解启动！目标代码: ' + currentTargetCode + ' | 限时: ' + timeLimit + '秒', 'warning');
+
+            if (crackTimer) clearInterval(crackTimer);
+            crackTimer = setInterval(() => {
+                crackTimeLeft -= 0.05;
+                document.getElementById('crackTimer').textContent = crackTimeLeft.toFixed(2) + 's';
+                document.getElementById('timerBar').style.width = (crackTimeLeft / timeLimit * 100) + '%';
+                if (crackTimeLeft <= 0) {
+                    clearInterval(crackTimer);
+                    log('时间到！破解失败。', 'error');
+                    document.getElementById('crackGame').style.display = 'none';
+                    // 失败也增加追踪分数
+                    gameState.hackTraceScore = (gameState.hackTraceScore || 0) + 10;
+                    saveState(gameState);
+                    document.getElementById('traceScore').textContent = gameState.hackTraceScore;
+                }
+            }, 50);
+        }
+
+        // 提交破解
+        function submitCrack() {
+            if (crackTimer) clearInterval(crackTimer);
+            const input = document.getElementById('crackInput').value.toUpperCase();
+            document.getElementById('crackGame').style.display = 'none';
+
+            if (input === currentTargetCode) {
+                log('✓ 母锁破解成功！令牌已获取。', 'success');
+                gameState.hackTraceScore = (gameState.hackTraceScore || 0) + 25;
+                // 标记破解成功（用于暗网解锁）
+                gameState._hackCracked = true;
+                saveState(gameState);
+                document.getElementById('traceScore').textContent = gameState.hackTraceScore;
+            } else {
+                log('✗ 代码错误！破解失败。', 'error');
+                gameState.hackTraceScore = (gameState.hackTraceScore || 0) + 15;
+                saveState(gameState);
+                document.getElementById('traceScore').textContent = gameState.hackTraceScore;
+            }
+        }
+
+        // 篡改现金
+        function hackCash() {
+            const val = parseFloat(document.getElementById('hackCash').value);
+            if (isNaN(val) || val < 0) { log('无效金额', 'error'); return; }
+            gameState = loadState();
+            gameState.cash = val;
+            gameState.hackTraceScore = (gameState.hackTraceScore || 0) + 30;
+            saveState(gameState);
+            document.getElementById('traceScore').textContent = gameState.hackTraceScore;
+            log('现金已修改为 ¥' + val.toFixed(2) + ' | 追踪分数 +30', 'warning');
+        }
+
+        // 篡改资产价格
+        function hackPrice() {
+            const assetId = document.getElementById('hackAsset').value;
+            const price = parseFloat(document.getElementById('hackPrice').value);
+            if (!assetId || isNaN(price) || price <= 0) { log('无效参数', 'error'); return; }
+            gameState = loadState();
+            const asset = (gameState.assets || []).find(a => a.id === assetId);
+            if (!asset) { log('资产不存在', 'error'); return; }
+            asset.price = price;
+            gameState.hackTraceScore = (gameState.hackTraceScore || 0) + 20;
+            saveState(gameState);
+            document.getElementById('traceScore').textContent = gameState.hackTraceScore;
+            log(asset.name + ' 价格已修改为 ¥' + price.toFixed(2) + ' | 追踪分数 +20', 'warning');
+        }
+
+        // 跳过回合
+        function hackSkipRounds() {
+            const rounds = parseInt(document.getElementById('hackSkip').value);
+            if (isNaN(rounds) || rounds <= 0) { log('无效回合数', 'error'); return; }
+            gameState = loadState();
+            gameState.round = (gameState.round || 0) + rounds;
+            gameState.hackTraceScore = (gameState.hackTraceScore || 0) + 40;
+            saveState(gameState);
+            document.getElementById('traceScore').textContent = gameState.hackTraceScore;
+            log('回合已跳过 ' + rounds + ' | 追踪分数 +40', 'warning');
+        }
+
+        // 基础清理
+        function cleanTraces() {
+            gameState = loadState();
+            gameState.hackTraceScore = Math.max(0, (gameState.hackTraceScore || 0) - 20);
+            saveState(gameState);
+            document.getElementById('traceScore').textContent = gameState.hackTraceScore;
+            log('痕迹清理完成 | 追踪分数 -20', 'success');
+        }
+
+        // 深度清理
+        function cleanTracesAdvanced() {
+            gameState = loadState();
+            const idx = (gameState.hackTools || []).findIndex(t => t.id === 'firewall_bypass');
+            if (idx < 0) { log('需要「防火墙破解器」，请前往暗网购买。', 'error'); return; }
+            gameState.hackTools[idx].usesLeft--;
+            if (gameState.hackTools[idx].usesLeft <= 0) gameState.hackTools.splice(idx, 1);
+            gameState.hackTraceScore = Math.max(0, (gameState.hackTraceScore || 0) - 50);
+            saveState(gameState);
+            document.getElementById('traceScore').textContent = gameState.hackTraceScore;
+            renderTools();
+            log('深度清理完成 | 追踪分数 -50', 'success');
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>

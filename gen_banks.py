@@ -1,0 +1,745 @@
+import json
+
+# VPN credentials (deterministic, shared across bank-attack / vpn pages / invest-sim)
+vpn_creds = {
+    'icbc':  {'username': 'vpn_icbc_9a3f', 'password': 'Cr4ck!2026#ICBC'},
+    'ccb':   {'username': 'vpn_ccb_7b2e', 'password': 'Cr4ck!2026#CCB'},
+    'boc':   {'username': 'vpn_boc_5d1c', 'password': 'Cr4ck!2026#BOC'},
+    'abc':   {'username': 'vpn_abc_3f8a', 'password': 'Cr4ck!2026#ABC'},
+    'hsbc':  {'username': 'vpn_hsbc_e2b7', 'password': 'Cr4ck!2026#HSBC'},
+    'hangseng': {'username': 'vpn_hs_4c9d', 'password': 'Cr4ck!2026#HS'},
+    'bochk': {'username': 'vpn_bochk_6a5f', 'password': 'Cr4ck!2026#BOCHK'},
+    'sc':    {'username': 'vpn_sc_8e3b', 'password': 'Cr4ck!2026#SC'},
+    'boe':   {'username': 'vpn_boe_1d7e', 'password': 'Cr4ck!2026#BOE'},
+    'hsbc_uk': {'username': 'vpn_huk_0f4c', 'password': 'Cr4ck!2026#HUK'},
+}
+
+banks = {
+    'icbc': {'name': '工商银行', 'en': 'ICBC', 'color': '#c41230', 'emoji': '🏦', 'region': 'mainland', 'vpn': vpn_creds['icbc'], 'cards': [
+        {'holder': '复旦大学', 'card': '6222356126761078686'},
+        {'holder': '中国人民大学', 'card': '6257091287019652'},
+        {'holder': '北京师范大学', 'card': '6257608303684569'},
+        {'holder': '中国农业大学', 'card': '6256960555482116'},
+        {'holder': '东莞市第二高级中学', 'card': '6258936136932259'},
+        {'holder': '冯程轩', 'card': '427721947812932033'},
+    ]},
+    'ccb': {'name': '建设银行', 'en': 'CCB', 'color': '#0066b3', 'emoji': '🏗️', 'region': 'mainland', 'vpn': vpn_creds['ccb'], 'cards': [
+        {'holder': '上海交通大学', 'card': '6222802225595725722'},
+        {'holder': '北京航空航天大学', 'card': '6993475370026539779'},
+        {'holder': '中国科学院大学', 'card': '6993477499972608074'},
+        {'holder': '北京科技大学', 'card': '6993478055491680481'},
+        {'holder': '东莞市第七高级中学', 'card': '6993477200026359281'},
+    ]},
+    'boc': {'name': '中国银行', 'en': 'BOC', 'color': '#b71c1c', 'emoji': '🏛️', 'region': 'mainland', 'vpn': vpn_creds['boc'], 'cards': [
+        {'holder': '同济大学', 'card': '6222809535503965036'},
+        {'holder': '北京理工大学', 'card': '6857949556405107945'},
+        {'holder': '北京协和医学院', 'card': '6857945236057598066'},
+        {'holder': '北京交通大学', 'card': '6857941846317114624'},
+        {'holder': '东莞市第八高级中学', 'card': '6857948273017407128', 'label': '中银账户①'},
+        {'holder': '东莞市第八高级中学', 'card': '8727503248106057', 'label': '中银账户②'},
+    ]},
+    'abc': {'name': '农业银行', 'en': 'ABC', 'color': '#008c4f', 'emoji': '🌾', 'region': 'mainland', 'vpn': vpn_creds['abc'], 'cards': [
+        {'holder': '华东师范大学', 'card': '6222808480706815121'},
+        {'holder': '上海财经大学', 'card': '6222808480706815122'},
+    ]},
+    'hsbc': {'name': '汇丰银行', 'en': 'HSBC', 'color': '#db0011', 'emoji': '🌏', 'region': 'hongkong', 'vpn': vpn_creds['hsbc'], 'cards': [
+        {'holder': '复旦大学', 'card': '6222807846702561206'},
+        {'holder': '华东师范大学', 'card': '6222807299293970759'},
+        {'holder': '东莞市第二高级中学', 'card': '245941620609428422'},
+    ]},
+    'hangseng': {'name': '恒生银行', 'en': 'Hang Seng Bank', 'color': '#007dba', 'emoji': '💎', 'region': 'hongkong', 'vpn': vpn_creds['hangseng'], 'cards': [
+        {'holder': '同济大学', 'card': '6222808932201878052'},
+    ]},
+    'bochk': {'name': '中银香港', 'en': 'Bank of China HK', 'color': '#b71c1c', 'emoji': '🇭🇰', 'region': 'hongkong', 'vpn': vpn_creds['bochk'], 'cards': [
+        {'holder': '上海交通大学', 'card': '6222802706288717432'},
+    ]},
+    'sc': {'name': '渣打银行', 'en': 'Standard Chartered', 'color': '#00a4e4', 'emoji': '⚡', 'region': 'hongkong', 'vpn': vpn_creds['sc'], 'cards': [
+        {'holder': '东莞市第七高级中学', 'card': '69852936050580755'},
+    ]},
+    'boe': {'name': '英格兰银行', 'en': 'Bank of England', 'color': '#8b0000', 'emoji': 'ENG', 'region': 'uk', 'vpn': vpn_creds['boe'], 'cards': [
+        {'holder': '叶珒铭', 'card': '62193400809416219531'},
+        {'holder': '叶珒铭', 'card': '62193401309416219531'},
+    ]},
+    'hsbc_uk': {'name': 'HSBC UK', 'en': 'HSBC UK', 'color': '#db0011', 'emoji': '🌏', 'region': 'uk', 'vpn': vpn_creds['hsbc_uk'], 'cards': [
+        {'holder': '叶珒铭', 'card': '8793400209413219531'},
+        {'holder': '叶珒铭', 'card': '8793403509413219531'},
+    ]},
+}
+
+# Build global card registry
+card_registry = {}
+for bkey, bdata in banks.items():
+    for c in bdata['cards']:
+        card_registry[c['card']] = {
+            'bank': bkey,
+            'bankName': bdata['name'],
+            'holder': c['holder'],
+            'label': c.get('label', ''),
+            'region': bdata.get('region', 'mainland')
+        }
+
+card_registry_json = json.dumps(card_registry, ensure_ascii=False)
+
+def gen_html(key, bank):
+    cards_json = json.dumps(bank['cards'], ensure_ascii=False)
+    n = bank['name']
+    en = bank['en']
+    color = bank['color']
+    emoji = bank['emoji']
+
+    html = '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n'
+    html += '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
+    html += '<title>' + n + ' - 个人网银登录</title>\n'
+    html += '<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>\n'
+    html += '<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>\n'
+    html += '<style>\n'
+    html += '* { margin:0; padding:0; box-sizing:border-box; }\n'
+    html += 'body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background: linear-gradient(135deg,#0a0e27 0%,#1a1f3a 50%,#0d1126 100%); min-height:100vh; display:flex; flex-direction:column; align-items:center; color:#e0e0e0; }\n'
+    html += '.header { width:100%; padding:30px 20px 16px; text-align:center; background: linear-gradient(180deg,rgba(0,0,0,0.3) 0%,transparent 100%); }\n'
+    html += '.bank-logo { font-size:48px; margin-bottom:8px; }\n'
+    html += '.bank-name { font-size:26px; font-weight:700; color:' + color + '; letter-spacing:2px; }\n'
+    html += '.bank-en { font-size:12px; color:#888; margin-top:4px; letter-spacing:1px; }\n'
+    html += '.container { width:100%; max-width:420px; padding:0 20px; margin-top:20px; }\n'
+    html += '.card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:28px; backdrop-filter:blur(10px); margin-bottom:16px; }\n'
+    html += '.card-title { font-size:16px; font-weight:600; text-align:center; margin-bottom:20px; color:#fff; }\n'
+    # ---- Master-S Lock Chain CSS ----
+    html += '.lock-chain { display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:20px; padding:12px 16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:12px; flex-wrap:wrap; }\n'
+    html += '.lock-node { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:70px; }\n'
+    html += '.lock-node .lock-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; border:2px solid; }\n'
+    html += '.lock-node .lock-icon.master { background:rgba(0,230,118,0.1); border-color:rgba(0,230,118,0.4); color:#00e676; }\n'
+    html += '.lock-node .lock-icon.sub { background:' + color + '15; border-color:' + color + '66; color:' + color + '; }\n'
+    html += '.lock-node .lock-icon.data { background:rgba(255,193,7,0.1); border-color:rgba(255,193,7,0.4); color:#ffc107; }\n'
+    html += '.lock-node .lock-icon.offline { background:rgba(255,82,82,0.1); border-color:rgba(255,82,82,0.4); color:#ff5252; animation:pulse-red 1.5s infinite; }\n'
+    html += '@keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:0.5} }\n'
+    html += '.lock-node .lock-label { font-size:10px; color:#888; font-weight:500; text-align:center; }\n'
+    html += '.lock-arrow { font-size:14px; color:#555; }\n'
+    html += '.lock-chain-status { text-align:center; font-size:10px; margin-top:6px; }\n'
+    html += '.lock-chain-status.ok { color:#00e676; }\n'
+    html += '.lock-chain-status.warn { color:#ffc107; }\n'
+    html += '.lock-chain-status.err { color:#ff5252; }\n'
+    # ---- Form CSS ----
+    html += '.form-group { margin-bottom:16px; }\n'
+    html += '.form-group label { display:block; font-size:12px; color:#9e9e9e; margin-bottom:6px; }\n'
+    html += '.form-group select, .form-group input { width:100%; padding:11px 13px; border-radius:10px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:#e0e0e0; font-size:14px; outline:none; transition:border-color 0.2s; }\n'
+    html += '.form-group select:focus, .form-group input:focus { border-color:' + color + '; }\n'
+    html += '.form-group select option { background:#1a1f3a; color:#e0e0e0; }\n'
+    html += '.btn { width:100%; padding:12px; border-radius:10px; border:none; background:linear-gradient(135deg,' + color + ',' + color + 'dd); color:#fff; font-size:14px; font-weight:600; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; margin-top:4px; }\n'
+    html += '.btn:hover { transform:translateY(-1px); box-shadow:0 4px 20px ' + color + '44; }\n'
+    html += '.btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }\n'
+    html += '.btn-outline { background:transparent; border:1px solid rgba(255,255,255,0.1); color:#9e9e9e; margin-top:8px; }\n'
+    html += '.btn-outline:hover { border-color:' + color + '; color:' + color + '; box-shadow:none; }\n'
+    html += '.hint { font-size:11px; color:#555; text-align:center; margin-top:12px; }\n'
+    html += '.error-msg { font-size:12px; color:#ff5252; text-align:center; margin-top:-8px; margin-bottom:8px; display:none; }\n'
+    html += '.success-msg { font-size:12px; color:#00e676; text-align:center; margin-top:-8px; margin-bottom:8px; display:none; }\n'
+    html += '.warning-msg { font-size:12px; color:#ffc107; text-align:center; margin-top:-8px; margin-bottom:8px; display:none; }\n'
+    # ---- Tabs ----
+    html += '.tabs { display:flex; gap:0; margin-bottom:16px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid rgba(255,255,255,0.08); overflow:hidden; }\n'
+    html += '.tab-btn { flex:1; padding:12px 8px; border:none; background:transparent; color:#888; font-size:13px; font-weight:500; cursor:pointer; transition:all 0.2s; }\n'
+    html += '.tab-btn.active { background:' + color + '22; color:' + color + '; }\n'
+    # ---- Dashboard ----
+    html += '.acc-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.06); }\n'
+    html += '.acc-avatar { width:42px; height:42px; border-radius:50%; background:' + color + '22; border:1px solid ' + color + '44; display:flex; align-items:center; justify-content:center; font-size:18px; }\n'
+    html += '.bal-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); }\n'
+    html += '.bal-row:last-child { border-bottom:none; }\n'
+    html += '.bal-label { font-size:12px; color:#9e9e9e; }\n'
+    html += '.bal-value { font-size:17px; font-weight:700; color:' + color + '; }\n'
+    # ---- Transfer ----
+    html += '.bank-detected { padding:8px 12px; background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.2); border-radius:8px; font-size:12px; color:#00e676; margin-bottom:12px; display:none; }\n'
+    html += '.bank-detected.error { background:rgba(255,82,82,0.08); border-color:rgba(255,82,82,0.2); color:#ff5252; }\n'
+    html += '.transfer-fee-info { font-size:11px; color:#888; text-align:center; margin-top:8px; padding:8px; background:rgba(255,255,255,0.02); border-radius:6px; }\n'
+    # ---- Credit ----
+    html += '.credit-badge { display:inline-block; font-size:11px; padding:2px 8px; border-radius:6px; font-weight:600; }\n'
+    html += '.credit-badge.high { background:rgba(0,230,118,0.15); color:#00e676; }\n'
+    html += '.credit-badge.mid { background:rgba(255,193,7,0.15); color:#ffc107; }\n'
+    html += '.credit-badge.low { background:rgba(255,82,82,0.15); color:#ff5252; }\n'
+    html += '.credit-badge.frozen { background:rgba(255,23,68,0.25); color:#ff1744; }\n'
+    html += '.frozen-overlay { padding:12px; background:rgba(255,23,68,0.08); border:1px solid rgba(255,23,68,0.2); border-radius:10px; text-align:center; margin-bottom:12px; }\n'
+    html += '.frozen-overlay .frozen-icon { font-size:28px; margin-bottom:4px; }\n'
+    html += '.frozen-overlay .frozen-text { font-size:13px; color:#ff5252; font-weight:600; }\n'
+    html += '.frozen-overlay .frozen-hint { font-size:11px; color:#888; margin-top:4px; }\n'
+    html += '.credit-rules { font-size:10px; color:#666; line-height:1.7; padding:8px 10px; background:rgba(255,255,255,0.02); border-radius:6px; margin-top:8px; }\n'
+    # ---- Frozen card in select ----
+    html += '.frozen-option { color:#ff5252 !important; }\n'
+    # ---- Records ----
+    html += '.tf-record-item { padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); }\n'
+    html += '.tf-record-item:last-child { border-bottom:none; }\n'
+    html += '.tf-record-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }\n'
+    html += '.tf-record-name { color:#e0e0e0; font-weight:600; font-size:13px; }\n'
+    html += '.tf-record-amount { font-weight:700; font-size:14px; }\n'
+    html += '.tf-record-amount.in { color:#00e676; }\n'
+    html += '.tf-record-amount.out { color:#ff5252; }\n'
+    html += '.tf-record-bank { color:#666; font-size:11px; margin-bottom:2px; }\n'
+    html += '.tf-record-time { color:#555; font-size:10px; }\n'
+    html += '.tf-record-credit { font-size:10px; color:#ffc107; }\n'
+    html += '.tf-record-empty { text-align:center; color:#555; font-size:12px; padding:16px 0; }\n'
+    html += '.tf-records-list { max-height:320px; overflow-y:auto; }\n'
+    # ---- Cheques ----
+    html += '.cheque-card { background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:14px 16px; margin-bottom:10px; position:relative; overflow:hidden; }\n'
+    html += '.cheque-card::before { content:""; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, ' + color + ', ' + color + '88); }\n'
+    html += '.cheque-card.cashed { opacity:0.5; }\n'
+    html += '.cheque-card.cashed::before { background: linear-gradient(90deg, #555, #55588); }\n'
+    html += '.cheque-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }\n'
+    html += '.cheque-amount { font-size:22px; font-weight:700; color:' + color + '; }\n'
+    html += '.cheque-amount.cashed { color:#888; text-decoration:line-through; }\n'
+    html += '.cheque-status { font-size:11px; padding:3px 8px; border-radius:6px; font-weight:600; }\n'
+    html += '.cheque-status.pending { background:rgba(255,193,7,0.15); color:#ffc107; }\n'
+    html += '.cheque-status.cashed { background:rgba(100,100,100,0.15); color:#888; }\n'
+    html += '.cheque-info { font-size:11px; color:#888; line-height:1.8; }\n'
+    html += '.cheque-info span { color:#bbb; }\n'
+    html += '.cheque-btn { margin-top:8px; padding:6px 16px; border-radius:8px; border:1px solid ' + color + '44; background:' + color + '15; color:' + color + '; font-size:12px; font-weight:600; cursor:pointer; transition:all 0.2s; }\n'
+    html += '.cheque-btn:hover { background:' + color + '33; border-color:' + color + '; }\n'
+    html += '.cheque-empty { text-align:center; color:#555; font-size:12px; padding:20px 0; }\n'
+    html += '.cheque-list { max-height:360px; overflow-y:auto; }\n'
+    html += '.cheque-section-title { font-size:12px; color:#666; margin:12px 0 6px; padding-bottom:4px; border-bottom:1px solid rgba(255,255,255,0.06); }\n'
+    # ---- Footer ----
+    html += '.footer { margin-top:auto; padding:20px; font-size:11px; color:#444; text-align:center; }\n'
+    html += '</style>\n</head>\n<body>\n'
+    # Header
+    html += '<div class="header"><div class="bank-logo">' + emoji + '</div><div class="bank-name">' + n + '</div><div class="bank-en">' + en + ' - Personal Internet Banking</div></div>\n'
+    html += '<div class="container">\n'
+    # Master-S Lock Chain Display
+    html += '<div class="lock-chain" id="lockChain">\n'
+    html += '  <div class="lock-node"><div class="lock-icon offline" id="masterLockIcon">🔒</div><div class="lock-label">母锁<br><span id="masterLockLabel" style="font-size:9px;color:#ff5252;">验证中</span></div></div>\n'
+    html += '  <div class="lock-arrow">→</div>\n'
+    html += '  <div class="lock-node"><div class="lock-icon sub" id="subLockIcon">🔐</div><div class="lock-label">子锁<br><span style="font-size:9px;">' + n + '</span></div></div>\n'
+    html += '  <div class="lock-arrow">→</div>\n'
+    html += '  <div class="lock-node"><div class="lock-icon data" id="dataLockIcon">📋</div><div class="lock-label">数据<br><span style="font-size:9px;">余额/信用</span></div></div>\n'
+    html += '</div>\n'
+    html += '<div class="lock-chain-status err" id="lockChainStatus">正在验证母锁授权...</div>\n'
+    # Login card
+    html += '<div class="card" id="loginCard">\n'
+    html += '<div class="card-title">个人网银登录</div>\n'
+    html += '<div class="form-group"><label>选择账户</label><select id="cardSelect"><option value="">请选择银行卡</option></select></div>\n'
+    html += '<div class="form-group"><label>登录密码</label><input type="password" id="pwdInput" placeholder="请输入卡号后6位"></div>\n'
+    html += '<div class="error-msg" id="loginError"></div>\n'
+    html += '<button class="btn" id="loginBtn">登录</button>\n'
+    html += '<div class="hint">密码为您的银行卡号后6位数字</div>\n'
+    html += '</div>\n'
+    # Dashboard
+    html += '<div id="dashboard" style="display:none;">\n'
+    html += '<div class="lock-chain" style="margin-bottom:12px;">\n'
+    html += '  <div class="lock-node"><div class="lock-icon master" id="masterLockIcon2">🔓</div><div class="lock-label">母锁<br><span style="font-size:9px;color:#00e676;">已授权</span></div></div>\n'
+    html += '  <div class="lock-arrow">→</div>\n'
+    html += '  <div class="lock-node"><div class="lock-icon sub">🔐</div><div class="lock-label">子锁<br><span style="font-size:9px;">' + n + '</span></div></div>\n'
+    html += '  <div class="lock-arrow">→</div>\n'
+    html += '  <div class="lock-node"><div class="lock-icon data">📋</div><div class="lock-label">数据<br><span style="font-size:9px;">' + str(len(bank['cards'])) + '个账户</span></div></div>\n'
+    html += '</div>\n'
+    html += '<div class="tabs"><button class="tab-btn active" data-tab="overview">账户概览</button><button class="tab-btn" data-tab="transfer">转账汇款</button><button class="tab-btn" data-tab="records">转账记录</button><button class="tab-btn" data-tab="cheques">📄 支票</button></div>\n'
+    # Overview tab
+    html += '<div class="card" id="tabOverview">\n'
+    html += '<div class="card-title">账户信息</div>\n'
+    html += '<div class="acc-header"><div class="acc-avatar">💳</div><div class="acc-info"><h3 id="accHolder">--</h3><p id="accCard">--</p></div></div>\n'
+    html += '<div class="bal-row"><span class="bal-label">人民币余额</span><span class="bal-value" id="accBalance">¥0.00</span></div>\n'
+    html += '<div class="bal-row"><span class="bal-label">港币余额</span><span class="bal-value" id="accBalanceHKD" style="font-size:14px;color:#00e5ff;">HK$0.00</span></div>\n'
+    html += '<div class="bal-row"><span class="bal-label">美元余额</span><span class="bal-value" id="accBalanceUSD" style="font-size:14px;color:#ffc107;">US$0.00</span></div>\n'
+    html += '<div class="bal-row"><span class="bal-label">信用分</span><span class="bal-value" id="accCredit" style="font-size:15px;">1.0</span></div>\n'
+    html += '<div class="bal-row"><span class="bal-label">信用状态</span><span id="accCreditStatus" style="font-size:13px;">--</span></div>\n'
+    html += '<div class="bal-row"><span class="bal-label">母锁状态</span><span id="masterStatusDash" style="font-size:13px;">--</span></div>\n'
+    html += '<div class="bal-row"><span class="bal-label">保底金额</span><span class="bal-value" style="color:#888;font-size:14px;">¥2,000.00</span></div>\n'
+    html += '<div class="credit-rules"><b>子母锁原理：</b>母锁(invest-sim)管理全部卡权限，子锁(' + n + ')仅管理本行账户。冻结由母锁统一控制。</div>\n'
+    html += '</div>\n'
+    # Transfer tab
+    html += '<div class="card" id="tabTransfer" style="display:none;">\n'
+    html += '<div class="card-title">转账汇款</div>\n'
+    html += '<div style="font-size:12px;color:#aaa;margin-bottom:14px;">转出账户：<span id="tfFromCard" style="color:' + color + ';">--</span></div>\n'
+    html += '<div id="frozenWarning" style="display:none;"><div class="frozen-overlay"><div class="frozen-icon">🔒</div><div class="frozen-text">账户已被母锁冻结</div><div class="frozen-hint">信用分过低，无法转账。请先在母锁充值至 ¥2,000 恢复信用。</div></div></div>\n'
+    html += '<div id="transferForm">\n'
+    html += '<div class="form-group"><label>收款卡号</label><input type="text" id="tfCardInput" placeholder="请输入收款人卡号" autocomplete="off"></div>\n'
+    html += '<div class="bank-detected" id="bankDetected"><span class="det-name" id="detBankName">--</span> <span class="det-holder" id="detHolder">--</span></div>\n'
+    html += '<div class="form-group"><label>转账金额</label><input type="number" id="tfAmount" placeholder="请输入转账金额" min="1" step="0.01"></div>\n'
+    html += '<div class="error-msg" id="tfError"></div>\n'
+    html += '<div class="success-msg" id="tfSuccess"></div>\n'
+    html += '<div class="warning-msg" id="tfWarning"></div>\n'
+    html += '<button class="btn" id="tfSubmitBtn">确认转账</button>\n'
+    html += '<div class="transfer-fee-info">同行转账免手续费 · 跨行转账手续费 ¥10</div>\n'
+    html += '</div>\n'
+    html += '</div>\n'
+    # Transfer records tab
+    html += '<div class="card" id="tabRecords" style="display:none;">\n'
+    html += '<div class="card-title">转账记录</div>\n'
+    html += '<div class="tf-records-list" id="tfRecordsList">\n'
+    html += '<div class="tf-record-empty">暂无转账记录</div>\n'
+    html += '</div>\n'
+    html += '</div>\n'
+    # Cheques tab
+    html += '<div class="card" id="tabCheques" style="display:none;">\n'
+    html += '<div class="card-title">我的支票</div>\n'
+    html += '<div class="cheque-list" id="chequeList">\n'
+    html += '<div class="cheque-empty">暂无支票</div>\n'
+    html += '</div>\n'
+    html += '</div>\n'
+    html += '<button class="btn btn-outline" id="backBtn">↩ 退出登录</button>\n'
+    html += '</div>\n</div>\n'
+    html += '<div class="footer">&copy; ' + n + ' ' + en + ' | 子母锁安全系统 v1.0</div>\n'
+    # ========== Script ==========
+    html += '<script>\n'
+    html += 'var CARDS = ' + cards_json + ';\n'
+    html += 'var CARD_MIN = 2000;\n'
+    html += 'var CREDIT_THRESHOLD = 1000;\n'
+    html += 'var CREDIT_FREEZE = 0.1;\n'
+    html += 'var TRANSFER_FEE = 10;\n'
+    html += 'var CARD_REGISTRY = ' + card_registry_json + ';\n'
+    html += 'var currentCard = null;\n'
+    html += 'var masterTokenValid = false;\n'
+    # ---- Data access functions ----
+    html += 'function getState(){ try{ var r=localStorage.getItem("investSimState_v13"); if(!r) return {}; return JSON.parse(r); }catch(e){ return {}; } }\n'
+    html += 'function saveState(s){ try{ localStorage.setItem("investSimState_v13", JSON.stringify(s)); }catch(e){} }\n'
+    html += 'function getBalances(){ return getState().cardBalances || {}; }\n'
+    html += 'function getCredits(){ return getState().cardCredits || {}; }\n'
+    html += 'function saveBalancesAndCredits(b,c){ var s=getState(); s.cardBalances=b; s.cardCredits=c; saveState(s); }\n'
+    html += 'function getRecords(){ return getState().transferRecords || []; }\n'
+    html += 'function addRecord(r){ var s=getState(); var recs=s.transferRecords||[]; recs.unshift(r); if(recs.length>100)recs=recs.slice(0,100); s.transferRecords=recs; saveState(s); }\n'
+    # ---- Multi-currency balance helpers ----
+    html += 'function getCardBal(card,cur){ var b=getBalances()[card]; if(!b) return 0; if(typeof b==="number") return cur==="CNY"?b:0; return b[cur]||0; }\n'
+    html += 'function setCardBal(card,cur,val){ var bs=getBalances(); if(!bs[card]||typeof bs[card]==="number"){ var old=bs[card]||0; bs[card]={CNY:typeof old==="number"?old:0,HKD:0,USD:0}; } bs[card][cur]=val; var s=getState(); s.cardBalances=bs; saveState(s); }\n'
+    # ---- Master token validation (子母锁核心) ----
+    html += 'function validateMasterToken(){\n'
+    html += '  try{\n'
+    html += '    var raw = localStorage.getItem("invest_sim_master");\n'
+    html += '    if(!raw){ return { valid:false, reason:"母锁未激活" }; }\n'
+    html += '    var token = JSON.parse(raw);\n'
+    html += '    var age = Date.now() - (token.ts || 0);\n'
+    html += '    if(age > 3600000){ return { valid:false, reason:"母锁令牌已过期（超过1小时）" }; }\n'
+    html += '    if(token.status !== "active"){ return { valid:false, reason:"母锁已被停用" }; }\n'
+    html += '    return { valid:true, age: age };\n'
+    html += '  }catch(e){ return { valid:false, reason:"母锁验证异常" }; }\n'
+    html += '}\n'
+    # ---- Update lock chain display ----
+    html += 'function updateLockChain(){\n'
+    html += '  var result = validateMasterToken();\n'
+    html += '  var icon = document.getElementById("masterLockIcon");\n'
+    html += '  var label = document.getElementById("masterLockLabel");\n'
+    html += '  var status = document.getElementById("lockChainStatus");\n'
+    html += '  if(result.valid){\n'
+    html += '    icon.className = "lock-icon master";\n'
+    html += '    icon.textContent = "🔓";\n'
+    html += '    label.textContent = "已授权";\n'
+    html += '    label.style.color = "#00e676";\n'
+    html += '    status.className = "lock-chain-status ok";\n'
+    html += '    status.textContent = "母锁授权有效 · 子锁已激活 · 数据访问已解锁";\n'
+    html += '    masterTokenValid = true;\n'
+    html += '  } else {\n'
+    html += '    icon.className = "lock-icon offline";\n'
+    html += '    icon.textContent = "🔒";\n'
+    html += '    label.textContent = "离线";\n'
+    html += '    label.style.color = "#ff5252";\n'
+    html += '    status.className = "lock-chain-status err";\n'
+    html += '    status.textContent = result.reason + " — 请先打开投资模拟平台(invest-sim.html)激活母锁";\n'
+    html += '    masterTokenValid = false;\n'
+    html += '  }\n'
+    html += '}\n'
+    # ---- Format functions ----
+    html += 'function fmt(n){ if(!isFinite(n)||n==null)n=0; var f=n.toFixed(2),p=f.split("."),sg=n<0?"-":"",a=p[0].replace("-",""); return sg+"¥"+a.replace(/\\B(?=(\\d{3})+(?!\\d))/g,",")+"."+p[1]; }\n'
+    html += 'function mask(c){ return c.length>8 ? c.slice(0,4)+" **** **** "+c.slice(-4) : c; }\n'
+    html += 'function creditClass(v){ if(v>=0.8) return "high"; if(v>=0.3) return "mid"; if(v>0.1) return "low"; return "frozen"; }\n'
+    html += 'function creditText(v){ if(v<=0.1) return "冻结"; return v.toFixed(1); }\n'
+    # ---- DOMContentLoaded ----
+    html += 'document.addEventListener("DOMContentLoaded", function(){\n'
+    # Validate master token immediately
+    html += '  updateLockChain();\n'
+    # Populate card select with frozen status
+    html += '  var sel = document.getElementById("cardSelect");\n'
+    html += '  var credits = getCredits();\n'
+    html += '  for(var i=0; i<CARDS.length; i++){\n'
+    html += '    var c = CARDS[i];\n'
+    html += '    var o = document.createElement("option");\n'
+    html += '    o.value = i;\n'
+    html += '    var cr = credits[c.card] != null ? credits[c.card] : 1.0;\n'
+    html += '    var frozenTag = cr <= CREDIT_FREEZE ? " [冻结]" : "";\n'
+    html += '    o.textContent = c.holder + (c.label ? " ("+c.label+")" : "") + "  " + mask(c.card) + frozenTag;\n'
+    html += '    if(cr <= CREDIT_FREEZE){ o.style.color = "#ff5252"; }\n'
+    html += '    sel.appendChild(o);\n'
+    html += '  }\n'
+    # ---- Login ----
+    html += '  document.getElementById("loginBtn").addEventListener("click", function(){\n'
+    html += '    var idx = parseInt(sel.value);\n'
+    html += '    var pwd = document.getElementById("pwdInput").value.trim();\n'
+    html += '    var err = document.getElementById("loginError");\n'
+    html += '    if(isNaN(idx)){ err.textContent="请选择银行卡"; err.style.display="block"; return; }\n'
+    html += '    var card = CARDS[idx];\n'
+    html += '    if(pwd !== card.card.slice(-6)){ err.textContent="密码错误"; err.style.display="block"; return; }\n'
+    # Master lock check: warn if not valid, but still allow login (simulation flexibility)
+    html += '    if(!masterTokenValid){\n'
+    html += '      err.textContent = "母锁未授权！请先打开 invest-sim.html 激活母锁";\n'
+    html += '      err.style.display = "block";\n'
+    html += '      return;\n'
+    html += '    }\n'
+    # Sub-lock check: frozen card cannot login
+    html += '    var credits = getCredits();\n'
+    html += '    var cr = credits[card.card] != null ? credits[card.card] : 1.0;\n'
+    html += '    if(cr <= CREDIT_FREEZE){\n'
+    html += '      err.textContent = "该账户已被母锁冻结！信用分 " + cr.toFixed(1) + "，请先在母锁充值至 ¥2,000";\n'
+    html += '      err.style.display = "block";\n'
+    html += '      return;\n'
+    html += '    }\n'
+    html += '    err.style.display = "none";\n'
+    html += '    currentCard = card;\n'
+    html += '    showDashboard();\n'
+    html += '  });\n'
+    html += '  document.getElementById("pwdInput").addEventListener("keypress", function(e){ if(e.key==="Enter") document.getElementById("loginBtn").click(); });\n'
+    # ---- Back button ----
+    html += '  document.getElementById("backBtn").addEventListener("click", function(){\n'
+    html += '    document.getElementById("dashboard").style.display = "none";\n'
+    html += '    document.getElementById("loginCard").style.display = "block";\n'
+    html += '    document.getElementById("pwdInput").value = "";\n'
+    html += '    currentCard = null;\n'
+    html += '    switchTab("overview");\n'
+    html += '    updateLockChain();\n'
+    html += '  });\n'
+    # ---- Tabs ----
+    html += '  document.querySelectorAll(".tab-btn").forEach(function(btn){\n'
+    html += '    btn.addEventListener("click", function(){ switchTab(this.dataset.tab); });\n'
+    html += '  });\n'
+    # ---- Card input detection ----
+    html += '  document.getElementById("tfCardInput").addEventListener("input", function(){\n'
+    html += '    var card = this.value.trim().replace(/\\s/g,"");\n'
+    html += '    var det = document.getElementById("bankDetected");\n'
+    html += '    document.getElementById("tfError").style.display = "none";\n'
+    html += '    if(card.length < 6){ det.style.display = "none"; return; }\n'
+    html += '    var info = CARD_REGISTRY[card];\n'
+    html += '    if(info){\n'
+    html += '      document.getElementById("detBankName").textContent = info.bankName;\n'
+    html += '      document.getElementById("detHolder").textContent = info.holder + (info.label ? " ("+info.label+")" : "");\n'
+    html += '      det.className = "bank-detected"; det.style.display = "block";\n'
+    html += '    }else{\n'
+    html += '      det.className = "bank-detected error";\n'
+    html += '      document.getElementById("detBankName").textContent = "未识别的卡号";\n'
+    html += '      document.getElementById("detHolder").textContent = "";\n'
+    html += '      det.style.display = "block";\n'
+    html += '    }\n'
+    html += '  });\n'
+    # ---- Transfer submit ----
+    html += '  document.getElementById("tfSubmitBtn").addEventListener("click", function(){\n'
+    html += '    var errEl = document.getElementById("tfError");\n'
+    html += '    var sucEl = document.getElementById("tfSuccess");\n'
+    html += '    var warnEl = document.getElementById("tfWarning");\n'
+    html += '    errEl.style.display = "none"; sucEl.style.display = "none"; warnEl.style.display = "none";\n'
+    # Re-validate master token before transfer
+    html += '    if(!validateMasterToken().valid){ showTfErr("母锁令牌已失效！请回到 invest-sim.html 重新激活"); return; }\n'
+    html += '    var toCard = document.getElementById("tfCardInput").value.trim().replace(/\\s/g,"");\n'
+    html += '    var amount = parseFloat(document.getElementById("tfAmount").value);\n'
+    html += '    if(!toCard || toCard.length < 6){ showTfErr("请输入有效的收款卡号"); return; }\n'
+    html += '    if(!CARD_REGISTRY[toCard]){ showTfErr("未识别的卡号，请检查后重试"); return; }\n'
+    html += '    if(toCard === currentCard.card){ showTfErr("不能向自己的账户转账"); return; }\n'
+    html += '    if(isNaN(amount) || amount <= 0){ showTfErr("请输入有效的转账金额"); return; }\n'
+    # Credit check
+    html += '    var balances = getBalances();\n'
+    html += '    var credits = getCredits();\n'
+    html += '    var myCredit = credits[currentCard.card] != null ? credits[currentCard.card] : 1.0;\n'
+    html += '    if(myCredit <= CREDIT_FREEZE){ showTfErr("账户已被母锁冻结！信用分 "+myCredit.toFixed(1)); return; }\n'
+    # Balance check
+    html += '    var myBal = getCardBal(currentCard.card, "CNY");\n'
+    html += '    var myInfo = CARD_REGISTRY[currentCard.card];\n'
+    html += '    var toInfo = CARD_REGISTRY[toCard];\n'
+    html += '    var isSameBank = myInfo.bank === toInfo.bank;\n'
+    html += '    var fee = isSameBank ? 0 : TRANSFER_FEE;\n'
+    html += '    var totalDeduct = amount + fee;\n'
+    html += '    if(myBal < totalDeduct){ showTfErr("余额不足！当前余额 "+fmt(myBal)); return; }\n'
+    # Execute transfer
+    html += '    setCardBal(currentCard.card, "CNY", myBal - totalDeduct);\n'
+    html += '    var toBal = getCardBal(toCard, "CNY");\n'
+    html += '    setCardBal(toCard, "CNY", toBal + amount);\n'
+    # Credit logic
+    html += '    var creditMsg = "";\n'
+    html += '    if(getCardBal(currentCard.card, "CNY") < CREDIT_THRESHOLD){\n'
+    html += '      var oldC = credits[currentCard.card] != null ? credits[currentCard.card] : 1.0;\n'
+    html += '      var newC = Math.max(CREDIT_FREEZE, Math.round(oldC / 2 * 10) / 10);\n'
+    html += '      credits[currentCard.card] = newC;\n'
+    html += '      creditMsg = "信用分 " + oldC.toFixed(1) + " → " + newC.toFixed(1);\n'
+    html += '      if(newC <= CREDIT_FREEZE){ creditMsg = "⚠️ 账户已被母锁冻结！信用分降至 0.1"; }\n'
+    html += '    }\n'
+    html += '    if(getCardBal(toCard, "CNY") >= CARD_MIN){\n'
+    html += '      var oldToC = credits[toCard] != null ? credits[toCard] : 1.0;\n'
+    html += '      if(oldToC < 1.0){ credits[toCard] = 1.0; }\n'
+    html += '    }\n'
+    html += '    saveBalancesAndCredits(getBalances(), credits);\n'
+    # Write transfer record
+    html += '    addRecord({\n'
+    html += '      id: Date.now(),\n'
+    html += '      direction: "out",\n'
+    html += '      name: toInfo.holder,\n'
+    html += '      bankType: toInfo.bankName,\n'
+    html += '      bankCard: toCard,\n'
+    html += '      amount: amount,\n'
+    html += '      fee: fee,\n'
+    html += '      balance: 0,\n'
+    html += '      cardBalance: getCardBal(currentCard.card, "CNY"),\n'
+    html += '      credit: credits[currentCard.card] || 1.0,\n'
+    html += '      creditChanged: creditMsg !== "",\n'
+    html += '      source: "' + n + '",\n'
+    html += '      time: Date.now()\n'
+    html += '    });\n'
+    # Show result
+    html += '    var feeText = fee > 0 ? "（手续费 ¥"+fee+"）" : "（免手续费）";\n'
+    html += '    sucEl.textContent = "转账成功！" + fmt(amount) + " → " + toInfo.holder + " " + feeText;\n'
+    html += '    sucEl.style.display = "block";\n'
+    html += '    if(creditMsg){ warnEl.textContent = creditMsg; warnEl.style.display = "block"; }\n'
+    html += '    document.getElementById("tfAmount").value = "";\n'
+    html += '    showDashboard();\n'
+    html += '  });\n'
+    html += '  document.getElementById("tfAmount").addEventListener("keypress", function(e){ if(e.key==="Enter") document.getElementById("tfSubmitBtn").click(); });\n'
+    html += '});\n'
+    # ---- switchTab ----
+    html += 'function switchTab(name){\n'
+    html += '  document.querySelectorAll(".tab-btn").forEach(function(b){ b.classList.toggle("active", b.dataset.tab===name); });\n'
+    html += '  document.getElementById("tabOverview").style.display = name==="overview" ? "block" : "none";\n'
+    html += '  document.getElementById("tabTransfer").style.display = name==="transfer" ? "block" : "none";\n'
+    html += '  document.getElementById("tabRecords").style.display = name==="records" ? "block" : "none";\n'
+    html += '  document.getElementById("tabCheques").style.display = name==="cheques" ? "block" : "none";\n'
+    html += '  if(name==="records"){ renderTransferRecords(); }\n'
+    html += '  if(name==="cheques"){ renderCheques(); }\n'
+    html += '  if(name==="transfer"){\n'
+    html += '    document.getElementById("tfFromCard").textContent = mask(currentCard.card);\n'
+    html += '    document.getElementById("tfCardInput").value = "";\n'
+    html += '    document.getElementById("tfAmount").value = "";\n'
+    html += '    document.getElementById("bankDetected").style.display = "none";\n'
+    html += '    document.getElementById("bankDetected").className = "bank-detected";\n'
+    html += '    document.getElementById("tfError").style.display = "none";\n'
+    html += '    document.getElementById("tfSuccess").style.display = "none";\n'
+    html += '    document.getElementById("tfWarning").style.display = "none";\n'
+    html += '    var credits = getCredits();\n'
+    html += '    var myCredit = credits[currentCard.card] != null ? credits[currentCard.card] : 1.0;\n'
+    html += '    var isFrozen = myCredit <= CREDIT_FREEZE;\n'
+    html += '    document.getElementById("frozenWarning").style.display = isFrozen ? "block" : "none";\n'
+    html += '    document.getElementById("transferForm").style.display = isFrozen ? "none" : "block";\n'
+    html += '  }\n'
+    html += '}\n'
+    # ---- showDashboard ----
+    html += 'function showDashboard(){\n'
+    html += '  var credits = getCredits();\n'
+    html += '  var myBal = getCardBal(currentCard.card, "CNY");\n'
+    html += '  var myHKD = getCardBal(currentCard.card, "HKD");\n'
+    html += '  var myUSD = getCardBal(currentCard.card, "USD");\n'
+    html += '  var myCredit = credits[currentCard.card] != null ? credits[currentCard.card] : 1.0;\n'
+    html += '  document.getElementById("accHolder").textContent = currentCard.holder + (currentCard.label ? " · "+currentCard.label : "");\n'
+    html += '  document.getElementById("accCard").textContent = mask(currentCard.card);\n'
+    html += '  document.getElementById("accBalance").textContent = fmt(myBal);\n'
+    html += '  document.getElementById("accBalance").style.color = myBal < CREDIT_THRESHOLD ? "#ff5252" : "' + color + '";\n'
+    html += '  document.getElementById("accBalanceHKD").textContent = "HK$" + myHKD.toFixed(2);\n'
+    html += '  document.getElementById("accBalanceUSD").textContent = "US$" + myUSD.toFixed(2);\n'
+    # Credit display
+    html += '  var cc = creditClass(myCredit);\n'
+    html += '  document.getElementById("accCredit").textContent = creditText(myCredit);\n'
+    html += '  var credColors = { high: "#00e676", mid: "#ffc107", low: "#ff5252", frozen: "#ff1744" };\n'
+    html += '  document.getElementById("accCredit").style.color = credColors[cc] || "#00e676";\n'
+    html += '  var statusEl = document.getElementById("accCreditStatus");\n'
+    html += '  if(myCredit <= CREDIT_FREEZE){ statusEl.innerHTML = \'<span class="credit-badge frozen">🔒 已冻结</span>\'; }\n'
+    html += '  else if(myCredit < 0.3){ statusEl.innerHTML = \'<span class="credit-badge low">⚠️ 信用危险</span>\'; }\n'
+    html += '  else if(myCredit < 0.8){ statusEl.innerHTML = \'<span class="credit-badge mid">信用一般</span>\'; }\n'
+    html += '  else { statusEl.innerHTML = \'<span class="credit-badge high">信用良好</span>\'; }\n'
+    # Master lock status in dashboard
+    html += '  var mResult = validateMasterToken();\n'
+    html += '  var mStatus = document.getElementById("masterStatusDash");\n'
+    html += '  if(mResult.valid){ mStatus.innerHTML = \'<span class="credit-badge high">🔓 已授权</span>\'; }\n'
+    html += '  else { mStatus.innerHTML = \'<span class="credit-badge low">🔒 未授权</span>\'; }\n'
+    html += '  document.getElementById("loginCard").style.display = "none";\n'
+    html += '  document.getElementById("dashboard").style.display = "block";\n'
+    html += '}\n'
+    # ---- renderTransferRecords ----
+    html += 'function renderTransferRecords(){\n'
+    html += '  var records = getRecords();\n'
+    html += '  var container = document.getElementById("tfRecordsList");\n'
+    html += '  if(!records || records.length === 0){ container.innerHTML = \'<div class="tf-record-empty">暂无转账记录</div>\'; return; }\n'
+    html += '  var h = "";\n'
+    html += '  for(var i=0; i<records.length; i++){\n'
+    html += '    var r = records[i];\n'
+    html += '    var isOut = r.direction === "out";\n'
+    html += '    var prefix = isOut ? "📤 " : "📥 ";\n'
+    html += '    var amountClass = isOut ? "out" : "in";\n'
+    html += '    var d = new Date(r.time);\n'
+    html += '    var timeStr = d.getFullYear()+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+" "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);\n'
+    html += '    var cardStr = r.bankCard ? r.bankCard.slice(0,4)+" **** "+r.bankCard.slice(-4) : "--";\n'
+    html += '    var feeStr = (r.fee && r.fee > 0) ? " | 手续费 ¥"+r.fee.toFixed(2) : "（免手续费）";\n'
+    html += '    var creditStr = r.creditChanged ? \' | <span class="tf-record-credit">信用 \'+r.credit.toFixed(1)+\'</span>\' : "";\n'
+    html += '    h += \'<div class="tf-record-item">\';\n'
+    html += '    h += \'<div class="tf-record-header"><span class="tf-record-name">\'+prefix+r.name+\'</span><span class="tf-record-amount \'+amountClass+\'">\'+(isOut?"-":"+")+"¥"+r.amount.toFixed(2)+\'</span></div>\';\n'
+    html += '    h += \'<div class="tf-record-bank">\'+r.bankType+\' · \'+cardStr+(r.source?" · 来自"+r.source:"")+\'</div>\';\n'
+    html += '    h += \'<div class="tf-record-time">\'+timeStr+feeStr+creditStr+\'</div>\';\n'
+    html += '    h += \'</div>\';\n'
+    html += '  }\n'
+    html += '  container.innerHTML = h;\n'
+    html += '}\n'
+    # ---- Cheque functions ----
+    html += 'function getCheques(){ var s=getState(); return (s.cheques||[]).filter(function(c){ return c.cardNo===currentCard.card; }); }\n'
+    html += 'function renderCheques(){\n'
+    html += '  var cheques = getCheques();\n'
+    html += '  var container = document.getElementById("chequeList");\n'
+    html += '  if(!cheques || cheques.length===0){ container.innerHTML=\'<div class="cheque-empty">暂无支票<br><span style="font-size:10px;color:#444;">ATM取款后会自动打印支票</span></div>\'; return; }\n'
+    html += '  var pending = cheques.filter(function(c){ return c.status==="pending"; });\n'
+    html += '  var cashed = cheques.filter(function(c){ return c.status==="cashed"; });\n'
+    html += '  var h = "";\n'
+    html += '  if(pending.length>0){\n'
+    html += '    h += \'<div class="cheque-section-title">待兑换 (\'+pending.length+\')</div>\';\n'
+    html += '    for(var i=0;i<pending.length;i++){ h += chequeHTML(pending[i]); }\n'
+    html += '  }\n'
+    html += '  if(cashed.length>0){\n'
+    html += '    h += \'<div class="cheque-section-title">已兑换 (\'+cashed.length+\')</div>\';\n'
+    html += '    for(var i=0;i<cashed.length;i++){ h += chequeHTML(cashed[i]); }\n'
+    html += '  }\n'
+    html += '  container.innerHTML = h;\n'
+    html += '}\n'
+    html += 'function chequeHTML(c){\n'
+    html += '  var d = new Date(c.date);\n'
+    html += '  var timeStr = d.getFullYear()+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+" "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);\n'
+    html += '  var isCashed = c.status==="cashed";\n'
+    html += '  var h = \'<div class="cheque-card\'+(isCashed?" cashed":"")+\'">\';\n'
+    html += '  h += \'<div class="cheque-header"><span class="cheque-amount\'+(isCashed?" cashed":"")+\'">¥\'+c.amount.toFixed(2)+\'</span><span class="cheque-status \'+c.status+\'">\'+(isCashed?"已兑换":"待兑换")+\'</span></div>\';\n'
+    html += '  h += \'<div class="cheque-info">\';\n'
+    html += '  h += \'<span>收款人：</span>\'+c.holder+\'<br>\';\n'
+    html += '  h += \'<span>卡号：</span>\'+mask(c.cardNo)+\'<br>\';\n'
+    html += '  h += \'<span>出票：</span>\'+c.atmBank+\' ATM<br>\';\n'
+    html += '  h += \'<span>时间：</span>\'+timeStr;\n'
+    html += '  h += \'</div>\';\n'
+    html += '  if(!isCashed){ h += \'<button class="cheque-btn" onclick="cashCheque(\'+c.id+\')" style="margin-right:6px;">兑换</button>\'; }\n'
+    html += '  h += \'<button class="cheque-btn" style="background:rgba(33,150,243,0.15);border-color:rgba(33,150,243,0.4);color:#2196f3;" onclick="downloadChequePDF(\'+c.id+\')">📄 PDF</button>\';\n'
+    html += '  h += \'</div>\';\n'
+    html += '  return h;\n'
+    html += '}\n'
+    html += 'function cashCheque(id){\n'
+    html += '  if(!validateMasterToken().valid){ alert("母锁令牌已失效！请回到 invest-sim.html 重新激活"); return; }\n'
+    html += '  var s = getState();\n'
+    html += '  var cheques = s.cheques || [];\n'
+    html += '  var cheque = null;\n'
+    html += '  for(var i=0;i<cheques.length;i++){\n'
+    html += '    if(cheques[i].id===id && cheques[i].cardNo===currentCard.card && cheques[i].status==="pending"){ cheque=cheques[i]; break; }\n'
+    html += '  }\n'
+    html += '  if(!cheque){ alert("支票不存在或已兑换"); return; }\n'
+    html += '  cheque.status = "cashed";\n'
+    html += '  var curBal = getCardBal(currentCard.card, "CNY");\n'
+    html += '  setCardBal(currentCard.card, "CNY", curBal + cheque.amount);\n'
+    html += '  var credits = s.cardCredits || {};\n'
+    html += '  if(getCardBal(currentCard.card, "CNY") >= CARD_MIN){\n'
+    html += '    var oldC = credits[currentCard.card] != null ? credits[currentCard.card] : 1.0;\n'
+    html += '    if(oldC < 1.0){ credits[currentCard.card] = 1.0; s.cardCredits = credits; }\n'
+    html += '  }\n'
+    html += '  s.cheques = cheques;\n'
+    html += '  saveState(s);\n'
+    html += '  showDashboard();\n'
+    html += '  renderCheques();\n'
+    html += '}\n'
+    # ---- Cheque PDF ----
+    html += 'function numToChinese(n){'
+    html += '  var digits=["零","壹","贰","叁","肆","伍","陆","柒","捌","玖"];'
+    html += '  var units=["","拾","佰","仟"];'
+    html += '  var bigUnits=["","万","亿"];'
+    html += '  if(n===0)return"零元整";'
+    html += '  var intPart=Math.floor(n);'
+    html += '  var decPart=Math.round((n-intPart)*100);'
+    html += '  var jiao=Math.floor(decPart/10);'
+    html += '  var fen=decPart%10;'
+    html += '  var s="";'
+    html += '  if(intPart>0){'
+    html += '    var str=String(intPart);'
+    html += '    var len=str.length;'
+    html += '    var zeroFlag=false;'
+    html += '    for(var i=0;i<len;i++){'
+    html += '      var d=parseInt(str[i]);'
+    html += '      var pos=len-1-i;'
+    html += '      var unitIdx=pos%4;'
+    html += '      var bigIdx=Math.floor(pos/4);'
+    html += '      if(d===0){zeroFlag=true;}'
+    html += '      else{'
+    html += '        if(zeroFlag){s+="零";zeroFlag=false;}'
+    html += '        s+=digits[d]+units[unitIdx];'
+    html += '      }'
+    html += '      if(unitIdx===0&&bigIdx>0){'
+    html += '        if(!zeroFlag)s+=bigUnits[bigIdx];'
+    html += '        if(d===0)zeroFlag=false;'
+    html += '      }'
+    html += '    }'
+    html += '    s+="元";'
+    html += '  }'
+    html += '  if(jiao>0){s+=digits[jiao]+"角";}'
+    html += '  else if(fen>0&&intPart>0){s+="零";}'
+    html += '  if(fen>0){s+=digits[fen]+"分";}'
+    html += '  else if(jiao===0&&fen===0){s+="整";}'
+    html += '  return s;'
+    html += '}\n'
+    html += 'function fillChequePreview(c){\n'
+    html += '  var d=new Date(c.date);\n'
+    html += '  var ds=d.getFullYear()+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+" "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);\n'
+    html += '  document.getElementById("cp-bank").textContent=c.bankName+" 支票";\n'
+    html += '  document.getElementById("cp-no").textContent=String(c.id).slice(-8);\n'
+    html += '  document.getElementById("cp-holder").textContent=c.holder||"";\n'
+    html += '  document.getElementById("cp-amount").textContent="\u00a5"+c.amount.toFixed(2);\n'
+    html += '  document.getElementById("cp-cn").textContent=numToChinese(c.amount);\n'
+    html += '  document.getElementById("cp-atm").textContent=c.atmBank||c.bankName||"";\n'
+    html += '  document.getElementById("cp-card").textContent=c.cardNo||"";\n'
+    html += '  document.getElementById("cp-date").textContent=ds;\n'
+    html += '  var st=c.status==="cashed";\n'
+    html += '  document.getElementById("cp-status").textContent="[ "+(st?"已兑换":"待兑换")+" ]";\n'
+    html += '  document.getElementById("cp-status").style.color=st?"#888":"#c90";\n'
+    html += '  document.getElementById("cp-cancel").style.display=st?"block":"none";\n'
+    html += '}\n'
+    html += 'function chequeToPDF(c){\n'
+    html += '  return new Promise(function(resolve,reject){\n'
+    html += '    if(!window.html2canvas){reject(new Error("html2canvas not loaded"));return;}\n'
+    html += '    fillChequePreview(c);\n'
+    html += '    var el=document.getElementById("cheque-preview");\n'
+    html += '    html2canvas(el,{scale:2,backgroundColor:"#ffffff",useCORS:true}).then(function(canvas){\n'
+    html += '      var imgData=canvas.toDataURL("image/png");\n'
+    html += '      var jsPDF=window.jspdf.jsPDF;\n'
+    html += '      var doc=new jsPDF({orientation:"landscape",unit:"mm",format:[200,120]});\n'
+    html += '      doc.addImage(imgData,"PNG",0,0,200,120);\n'
+    html += '      resolve(doc);\n'
+    html += '    }).catch(function(e){reject(e);});\n'
+    html += '  });\n'
+    html += '}\n'
+    html += 'function downloadChequePDF(id){\n'
+    html += '  if(!window.jspdf||!window.jspdf.jsPDF){alert("PDF库加载中，请刷新页面重试");return;}\n'
+    html += '  if(!window.html2canvas){alert("截图库加载中，请刷新页面重试");return;}\n'
+    html += '  var cheques=getState().cheques||[];\n'
+    html += '  var c=null;\n'
+    html += '  for(var i=0;i<cheques.length;i++){if(cheques[i].id===id){c=cheques[i];break;}}\n'
+    html += '  if(!c){alert("cheque not found");return;}\n'
+    html += '  chequeToPDF(c).then(function(doc){\n'
+    html += '    doc.save("cheque_"+String(c.id).slice(-8)+".pdf");\n'
+    html += '  }).catch(function(e){alert("PDF生成失败: "+e.message);});\n'
+    html += '}\n'
+    # ---- showTfErr ----
+    html += 'function showTfErr(msg){\n'
+    html += '  var el = document.getElementById("tfError");\n'
+    html += '  el.textContent = msg; el.style.display = "block";\n'
+    html += '  document.getElementById("tfSuccess").style.display = "none";\n'
+    html += '  document.getElementById("tfWarning").style.display = "none";\n'
+    html += '}\n'
+    # ---- Hidden cheque preview for PDF generation ----
+    html += '</script>\n'
+    html += '<div id="cheque-preview" style="position:fixed;left:-9999px;top:0;width:800px;height:480px;background:#fff;border:3px solid #b71c1c;font-family:\'Microsoft YaHei\',\'PingFang SC\',sans-serif;box-sizing:border-box;overflow:hidden;">\n'
+    html += '  <div style="background:#b71c1c;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;">\n'
+    html += '    <span id="cp-bank" style="font-size:24px;font-weight:bold;">银行名称 支票</span>\n'
+    html += '    <span style="font-size:13px;">No. <span id="cp-no">00000000</span></span>\n'
+    html += '  </div>\n'
+    html += '  <div style="padding:24px 28px;position:relative;">\n'
+    html += '    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:10px;">\n'
+    html += '      <span style="font-size:15px;color:#333;padding-top:4px;">收款人 / <span id="cp-holder" style="font-weight:bold;"></span></span>\n'
+    html += '      <div style="text-align:right;">\n'
+    html += '        <span id="cp-amount" style="font-size:28px;color:#b71c1c;font-weight:bold;display:block;">\u00a50.00</span>\n'
+    html += '        <span id="cp-status" style="font-size:14px;font-weight:bold;color:#c90;border:2px solid currentColor;padding:3px 10px;border-radius:4px;display:inline-block;margin-top:4px;">[ 待兑换 ]</span>\n'
+    html += '      </div>\n'
+    html += '    </div>\n'
+    html += '    <div style="font-size:13px;color:#888;margin-bottom:12px;">大写金额：<span id="cp-cn" style="color:#555;font-weight:600;"></span></div>\n'
+    html += '    <div style="border-bottom:1px solid #ddd;margin-bottom:18px;"></div>\n'
+    html += '    <div style="font-size:14px;color:#333;line-height:2.2;">\n'
+    html += '      <div>出票银行：<span id="cp-atm"></span></div>\n'
+    html += '      <div>卡　　号：<span id="cp-card"></span></div>\n'
+    html += '      <div>日　　期：<span id="cp-date"></span></div>\n'
+    html += '    </div>\n'
+    html += '    <div id="cp-cancel" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:48px;color:#e74c3c;border:4px solid #e74c3c;padding:10px 30px;border-radius:8px;opacity:0.7;pointer-events:none;">已 注 销</div>\n'
+    html += '  </div>\n'
+    html += '  <div style="position:absolute;bottom:14px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:11px;color:#bbb;">\n'
+    html += '    <span>InvestSim 支票系统 v1.0 | 仅供投资模拟使用</span>\n'
+    html += '    <span>Generated: ' + str(__import__('datetime').datetime.now().strftime('%Y-%m-%d')) + '</span>\n'
+    html += '  </div>\n'
+    html += '</div>\n'
+    html += '</body>\n</html>'
+    return html
+
+for key, bank in banks.items():
+    html = gen_html(key, bank)
+    path = 'C:/Users/Ye201/WorkBuddy/2026-05-23-task-2/bank-' + key + '.html'
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(html)
+    print('Created: bank-' + key + '.html (' + bank['name'] + ')')
+
+print('Done!')

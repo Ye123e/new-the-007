@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>中国人民保险 - 保险服务</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#0a0e17; color:#e0e0e0; min-height:100vh; }
+.header { background:linear-gradient(135deg,#d32f2f,#d32f2f99); padding:20px 24px; display:flex;align-items:center;gap:14px; }
+.header-icon { width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px; }
+.header-info h1 { font-size:22px;color:#fff; }
+.header-info p { font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px; }
+.container { max-width:900px;margin:0 auto;padding:16px; }
+.login-box { background:#131823;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:28px;margin-top:20px;text-align:center; }
+.login-box h2 { font-size:18px;margin-bottom:12px;color:#d32f2f; }
+.login-box p { font-size:13px;color:#888;margin-bottom:18px;line-height:1.6; }
+.login-btn { display:inline-block;padding:12px 40px;background:#d32f2f;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600;transition:transform 0.2s; }
+.login-btn:hover { transform:scale(1.04); }
+.lock-chain { display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;font-size:11px;color:#666; }
+.lock-dot { width:8px;height:8px;border-radius:50%;background:#444; }
+.lock-dot.active { background:#4caf50;box-shadow:0 0 6px #4caf50; }
+.lock-line { width:30px;height:2px;background:#333; }
+.lock-line.active { background:#4caf50; }
+.main-app { display:none; }
+.nav-tabs { display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap; }
+.nav-tab { padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#888;transition:all 0.2s;flex:0 0 auto; }
+.nav-tab.active { background:#d32f2f22;color:#d32f2f;border-color:#d32f2f44;font-weight:600; }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+.stat-row { display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px; }
+.stat-card { background:#131823;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;text-align:center; }
+.stat-value { font-size:20px;font-weight:700;color:#d32f2f; }
+.stat-label { font-size:11px;color:#777;margin-top:2px; }
+.prod-list { display:flex;flex-direction:column;gap:12px; }
+.prod-card { background:#131823;border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:18px;transition:border-color 0.2s; }
+.prod-card:hover { border-color:#d32f2f33; }
+.prod-header { display:flex;justify-content:space-between;align-items:start;margin-bottom:10px; }
+.prod-name { font-size:16px;font-weight:600; }
+.prod-type-badge { font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;background:#d32f2f18;color:#d32f2f; }
+.prod-desc { font-size:12px;color:#999;margin-bottom:12px;line-height:1.5; }
+.prod-specs { display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px; }
+.prod-spec { display:flex;flex-direction:column;gap:2px; }
+.spec-label { font-size:10px;color:#666; }
+.spec-value { font-size:13px;font-weight:600;color:#ddd; }
+.buy-bar { display:flex;align-items:center;gap:8px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.05); }
+.premium-input { width:130px;padding:8px 10px;background:#1a1f2e;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:14px;outline:none; }
+.premium-input:focus { border-color:#d32f2f; }
+.btn-buy { padding:8px 22px;background:#d32f2f;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600; }
+.btn-buy:hover { opacity:0.85; }
+.btn-buy:disabled { opacity:0.4;cursor:not-allowed; }
+.policy-table { width:100%;border-collapse:collapse; }
+.policy-table th { text-align:left;font-size:11px;color:#777;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:500; }
+.policy-table td { padding:11px 6px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;vertical-align:middle; }
+.status-active { color:#4caf50;font-weight:600;font-size:11px; }
+.status-expired { color:#888;font-size:11px; }
+.status-claimed { color:#ff9800;font-size:11px; }
+.claim-item { background:#131823;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;margin-bottom:10px; }
+.claim-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:6px; }
+.claim-event { font-weight:600;font-size:14px; }
+.claim-amount { font-size:16px;font-weight:700;color:#ff5252; }  # red
+.claim-detail { font-size:11px;color:#888; }
+.btn-claim { padding:6px 16px;background:#4caf50;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;margin-top:8px;font-weight:600; }
+.btn-claim:disabled { opacity:0.4;cursor:not-allowed; }
+.btn-claim:hover {notdisabled} { background:#43a047; }
+.acct-summary { background:#131823;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px;margin-bottom:14px; }
+.acct-row { display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px; }
+.acct-row:last-child { border-bottom:none; }
+.acct-label { color:#888; }
+.acct-value { font-weight:600; }
+.notice { padding:10px 14px;background:rgba(33,150,243,0.06);border:1px solid rgba(33,150,243,0.15);border-radius:8px;font-size:11px;color:#ccc;line-height:1.6;margin-top:12px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-icon">🛡️</div>
+  <div class="header-info"><h1>中国人民保险</h1><p>PICC · 中央管理的国有保险巨头，覆盖财险、寿险、健康险全品类</p></div>
+</div>
+<div class="container">
+<div id="loginScreen" class="login-box">
+  <div class="lock-chain" id="lockChain"></div>
+  <h2>🛡️ 登录 人保</h2>
+  <p>安全登录以访问您的保险账户<br>需要母锁令牌验证</p>
+  <button class="login-btn" onclick="doLogin()">🔑 验证并登录</button>
+  <p id="loginError" style="color:#f44336;margin-top:10px;display:none;"></p>
+</div>
+<div id="mainApp" class="main-app">
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-iTab="overview">📊 概览</div>
+    <div class="nav-tab" data-iTab="products">📦 投保</div>
+    <div class="nav-tab" data-iTab="policies">📋 我的保单</div>
+    <div class="nav-tab" data-iTab="claims">🏥 理赔</div>
+  </div>
+  <div id="iTab-overview" class="tab-panel active">
+    <div id="acctSummary" class="acct-summary"></div>
+    <div class="notice">ℹ️ 保险是一种风险管理工具。保费支出会从模拟器现金中扣除，理赔金会加回现金。不同产品的赔付条件和比例不同。</div>
+  </div>
+  <div id="iTab-products" class="tab-panel">
+    <div id="productList" class="prod-list"></div>
+  </div>
+  <div id="iTab-policies" class="tab-panel">
+    <div style="overflow-x:auto;"><table class="policy-table"><thead><tr><th>产品名称</th><th>类型</th><th>保额</th><th>年保费</th><th>剩余期数</th><th>状态</th></tr></thead><tbody id="policyBody"></tbody></table></div>
+  </div>
+  <div id="iTab-claims" class="tab-panel">
+    <div id="claimsList"></div>
+  </div>
+</div>
+</div>
+<script>
+const INS_KEY = 'picc';
+const INS_NAME = '中国人民保险';
+const INS_SHORT = '人保';
+const INS_COLOR = '#d32f2f';
+var STORAGE_KEY = "investSimState_v13";
+var isLoggedIn = false;
+var PRODUCTS = [{"id": "health_basic", "name": "基础医疗险", "type": "health", "premium_range": [500, 2000], "coverage_range": [50000, 200000], "term": 12, "desc": "住院/手术费用报销"}, {"id": "property_home", "name": "家庭财产险", "type": "property", "premium_range": [300, 1500], "coverage_range": [100000, 800000], "term": 12, "desc": "房屋/家具/电器保障"}, {"id": "accident_yearly", "name": "综合意外险", "type": "accident", "premium_range": [100, 500], "coverage_range": [200000, 1000000], "term": 12, "desc": "意外身故/伤残/医疗"}];
+var CLAIM_EVENTS = [{"name": "感冒发烧就医", "type": "health", "cost_range": [200, 1500], "prob_base": 0.15}, {"name": "急性肠胃炎", "type": "health", "cost_range": [500, 3000], "prob_base": 0.05}, {"name": "意外摔伤", "type": "accident", "cost_range": [1000, 8000], "prob_base": 0.03}, {"name": "交通事故", "type": "accident", "cost_range": [5000, 50000], "prob_base": 0.01}, {"name": "家中水管爆裂", "type": "property", "cost_range": [2000, 15000], "prob_base": 0.04}, {"name": "家电损坏", "type": "property", "cost_range": [500, 5000], "prob_base": 0.06}, {"name": "车辆碰撞维修", "type": "vehicle", "cost_range": [2000, 20000], "prob_base": 0.08}, {"name": "车辆被盗", "type": "vehicle", "cost_range": [30000, 150000], "prob_base": 0.005}, {"name": "重大疾病确诊", "type": "health", "cost_range": [30000, 150000], "prob_base": 0.02}, {"name": "自然灾害损失", "type": "property", "cost_range": [10000, 100000], "prob_base": 0.01}];
+function fmt(n) {
+  if (n == null || isNaN(n) || !isFinite(n)) return "0.00";
+  return n.toLocaleString("zh-CN", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function safeFixed(n, d) {
+  if (n == null || isNaN(n) || !isFinite(n)) return "0." + "0".repeat(d||2);
+  return Number(n).toFixed(d || 2);
+}
+
+function checkMasterLock() {
+  try {
+    var raw = localStorage.getItem("invest_sim_master");
+    if (!raw) return { ok:false, msg:"未找到母锁令牌，请先打开投资模拟器" };
+    var token = JSON.parse(raw);
+    if (Date.now() - token.time > 3600000) return { ok:false, msg:"母锁令牌已过期(>1小时)，请重新打开模拟器" };
+    return { ok:true, token:token };
+  } catch(e) { return { ok:false, msg:"令牌解析失败" }; }
+}
+
+function renderLockChain() {
+  var c = document.getElementById("lockChain");
+  var lock = checkMasterLock();
+  c.innerHTML = '<span class="lock-dot '+(lock.ok?"active":"")+'"></span>'+
+    '<span class="lock-line '+(lock.ok?"active":"")+'"></span>'+
+    '<span class="lock-dot '+(lock.ok?"active":"")+'"></span>'+
+    '<span class="lock-line '+(lock.ok?"active":"")+'"></span>'+
+    '<span style="font-size:10px;color:'+(lock.ok?"#4caf50":"#666")+'">'+(lock.ok?"母锁→数据 已连接":"母锁→数据 断开")+'</span>';
+}
+
+function loadState() {
+  try { var r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+}
+function saveState(s) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch(e) {}
+}
+
+function getInsData(state) {
+  if (!state.insurancePolicies) state.insurancePolicies = {};
+  if (!state.insurancePolicies[INS_KEY]) {
+    state.insurancePolicies[INS_KEY] = {
+      totalPremium: 0,
+      totalClaimed: 0,
+      policies: [],
+      claims: []
+    };
+  }
+  return state.insurancePolicies[INS_KEY];
+}
+
+function doLogin() {
+  var lock = checkMasterLock();
+  if (!lock.ok) {
+    document.getElementById("loginError").textContent = lock.msg;
+    document.getElementById("loginError").style.display = "block";
+    renderLockChain(); return;
+  }
+  isLoggedIn = true;
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
+  renderOverview();
+  renderProducts();
+  renderPolicies();
+  renderClaims();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  renderLockChain();
+  document.querySelectorAll(".nav-tab").forEach(function(tab) {
+    tab.addEventListener("click", function() {
+      document.querySelectorAll(".nav-tab").forEach(function(t){t.classList.remove("active")});
+      this.classList.add("active");
+      document.querySelectorAll(".tab-panel").forEach(function(p){p.classList.remove("active")});
+      var target = "iTab-" + this.getAttribute("data-iTab");
+      var panel = document.getElementById(target);
+      if (panel) panel.classList.add("active");
+      if (target === "iTab-overview") renderOverview();
+      if (target === "iTab-products") renderProducts();
+      if (target === "iTab-policies") renderPolicies();
+      if (target === "iTab-claims") renderClaims();
+    });
+  });
+});
+
+function renderOverview() {
+  var s = loadState(); if (!s) return;
+  var d = getInsData(s);
+  var cash = s.cash || 0;
+  var activePol = (d.policies||[]).filter(function(p){return p.status === "active";}).length;
+  var c = document.getElementById("acctSummary");
+  c.innerHTML = '<div class="acct-row"><span class="acct-label">🏢 公司</span><span class="acct-value">' + INS_NAME + '</span></div>'+
+    '<div class="acct-row"><span class="acct-label">💰 现金余额</span><span class="acct-value">¥' + fmt(cash) + '</span></div>'+
+    '<div class="acct-row"><span class="acct-label">📋 有效保单</span><span class="acct-value">' + activePol + ' 份</span></div>'+
+    '<div class="acct-row"><span class="acct-label">💸 累计保费</span><span class="acct-value" style="color:#f44336;">-¥' + fmt(d.totalPremium) + '</span></div>'+
+    '<div class="acct-row"><span class="acct-label">✅ 累计理赔</span><span class="acct-value" style="color:#4caf50;">+¥' + fmt(d.totalClaimed) + '</span></div>'+
+    '<div class="acct-row"><span class="acct-label">📊 净收支</span><span class="acct-value" style="color:' + ((d.totalClaimed - d.totalPremium) >= 0 ? "#ff5252" : "#00e676") + ';">' + ((d.totalClaimed - d.totalPremium) >= 0 ? "+" : "") + '¥' + fmt(d.totalClaimed - d.totalPremium) + '</span></div>';
+}
+
+function renderProducts() {
+  var c = document.getElementById("productList"); if (!c) return;
+  var s = loadState(); var cash = s ? (s.cash || 0) : 0;
+  var h = '';
+  PRODUCTS.forEach(function(prod, i) {
+    var minPrem = prod.premium_range[0];
+    var maxCov = prod.coverage_range[1];
+    var typeNames = {"health":"医疗","property":"财产","accident":"意外","life":"寿险","vehicle":"车险","investment":"投资"};
+    var tName = typeNames[prod.type] || prod.type;
+    h += '<div class="prod-card">';
+    h += '<div class="prod-header"><div><div class="prod-name">' + prod.name + '</div>';
+    h += '<span class="prod-type-badge">' + tName + '险</span></div></div>';
+    h += '<div class="prod-desc">' + prod.desc + '</div>';
+    h += '<div class="prod-specs">';
+    h += '<div class="prod-spec"><span class="spec-label">保障期限</span><span class="spec-value">' + prod.term + '个月</span></div>';
+    h += '<div class="prod-spec"><span class="spec-label">保额范围</span><span class="spec-value">¥' + fmt(prod.coverage_range[0]) + ' - ¥' + fmt(maxCov) + '</span></div>';
+    h += '<div class="prod-spec"><span class="spec-label">年保费范围</span><span class="spec-value">¥' + minPrem + ' 起</span></div>';
+    h += '</div>';
+    h += '<div class="buy-bar">';
+    h += '<input type="number" class="premium-input" id="prem_' + i + '" placeholder="输入保额" min="' + prod.coverage_range[0] + '" max="' + maxCov + '" step="1000">';
+    h += '<button class="btn-buy" onclick="doBuyPolicy(' + i + ')" ' + (cash < minPrem ? "disabled" : "") + '>立即投保</button>';
+    h += '</div></div>';
+  });
+  c.innerHTML = h;
+}
+
+function doBuyPolicy(idx) {
+  // Lock check
+  var lock = checkMasterLock();
+  if (!lock.ok) { alert("母锁验证失败: " + lock.msg); isLoggedIn = false; location.reload(); return; }
+
+  var prod = PRODUCTS[idx]; if (!prod) return;
+  var input = document.getElementById("prem_" + idx); if (!input) return;
+  var coverage = parseFloat(input.value);
+  if (!coverage || coverage < prod.coverage_range[0]) { alert("最低保额 ¥" + fmt(prod.coverage_range[0])); return; }
+  if (coverage > prod.coverage_range[1]) { alert("最高保额 ¥" + fmt(prod.coverage_range[1])); return; }
+
+  // Calculate premium (linear interpolation)
+  var ratio = (coverage - prod.coverage_range[0]) / (prod.coverage_range[1] - prod.coverage_range[0]);
+  var premium = prod.premium_range[0] + ratio * (prod.premium_range[1] - prod.premium_range[0]);
+  premium = Math.round(premium * 100) / 100;
+
+  var s = loadState(); if (!s) return;
+  if ((s.cash || 0) < premium) { alert("现金不足！需 ¥" + fmt(premium)); return; }
+
+  s.cash -= premium;
+  var d = getInsData(s);
+  d.totalPremium = (d.totalPremium || 0) + premium;
+
+  var policy = {
+    id: "pol_" + Date.now(),
+    productId: prod.id,
+    name: prod.name,
+    type: prod.type,
+    coverage: coverage,
+    annualPremium: premium,
+    termMonths: prod.term,
+    remainingMonths: prod.term,
+    purchasedAt: Date.now(),
+    round: s.round || 0,
+    status: "active"
+  };
+  d.policies.push(policy);
+  saveState(s);
+  alert("✅ 投保成功！\n产品: " + prod.name + "\n保额: ¥" + fmt(coverage) + "\n年保费: ¥" + fmt(premium) + "\n期限: " + prod.term + "个月");
+  renderOverview();
+  renderProducts();
+  renderPolicies();
+}
+
+function renderPolicies() {
+  var s = loadState(); if (!s) return;
+  var d = getInsData(s);
+  var tbody = document.getElementById("policyBody"); if (!tbody) return;
+  if (!d.policies || d.policies.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#555;padding:20px;">暂无保单</td></tr>'; return;
+  }
+  var typeNames = {"health":"医疗","property":"财产","accident":"意外","life":"寿险","vehicle":"车险","investment":"投资"};
+  var h = '';
+  d.policies.forEach(function(p) {
+    var stClass = p.status === "active" ? "status-active" : (p.status === "expired" ? "status-expired" : "status-claimed");
+    var stText = p.status === "active" ? "生效中" : (p.status === "expired" ? "已过期" : "已理赔");
+    h += '<tr><td>' + p.name + '</td><td>' + (typeNames[p.type]||p.type) + '</td><td>¥' + fmt(p.coverage) + '</td><td>¥' + fmt(p.annualPremium) + '</td><td>' + (p.remainingMonths||0) + '月</td><td class="'+stClass+'">' + stText + '</td></tr>';
+  });
+  tbody.innerHTML = h;
+}
+
+function renderClaims() {
+  var c = document.getElementById("claimsList"); if (!c) return;
+  var s = loadState(); if (!s) { c.innerHTML = "<div style=\"text-align:center;color:#555;padding:30px;\">无数据</div>"; return; }
+  var d = getInsData(s);
+  // Generate 1-3 potential claim events based on active policies
+  var activePol = (d.policies||[]).filter(function(p){return p.status === "active";});
+  if (activePol.length === 0) {
+    c.innerHTML = '<div class="notice">没有有效的保单。先去投保吧！</div>'; return;
+  }
+  // Show existing claims first
+  var existingClaims = (d.claims||[]).filter(function(cl){return cl.status !== "paid";});
+  var h = '';
+  if (existingClaims.length > 0) {
+    h += '<div style="margin-bottom:14px;"><b style="font-size:13px;">待处理理赔</b></div>';
+    existingClaims.forEach(function(cl) {
+      h += '<div class="claim-item">';
+      h += '<div class="claim-header"><span class="claim-event">' + cl.eventName + '</span><span class="claim-amount">¥' + fmt(cl.claimAmount) + '</span></div>';
+      h += '<div class="claim-detail">保单: ' + cl.policyName + ' | 发生回合: ' + (cl.round||"?") + ' | 状态: ' + (cl.status==="pending"?"待申请":cl.status) + '</div>';
+      if (cl.status === "pending") {
+        h += '<button class="btn-claim" onclick="submitClaim(\''+cl.id+'\')">申请理赔</button>';
+      } else if (cl.status === "approved") {
+        h += '<button class="btn-claim" onclick="receiveClaim(\''+cl.id+'\')">领取赔款</button>';
+      }
+      h += '</div>';
+    });
+  }
+  // Generate new potential events
+  h += '<div style="margin-top:16px;"><b style="font-size:13px;">可能发生的风险事件（随机生成）</b></div>';
+  var numEvents = Math.min(3, activePol.length);
+  var usedTypes = {};
+  for (var ei = 0; ei < numEvents * 3 && Object.keys(usedTypes).length < numEvents; ei++) {
+    var evIdx = Math.floor(Math.random() * CLAIM_EVENTS.length);
+    var ev = CLAIM_EVENTS[evIdx];
+    // Match event type to a policy type
+    var matchingPol = activePol.find(function(p) {
+      if (ev.type === "health" && (p.type === "health")) return true;
+      if (ev.type === "accident" && (p.type === "accident" || p.type === "health")) return true;
+      if (ev.type === "property" && (p.type === "property")) return true;
+      if (ev.type === "vehicle" && (p.type === "vehicle")) return true;
+      return false;
+    });
+    if (!matchingPol || usedTypes[ev.name]) continue;
+    usedTypes[ev.name] = true;
+    var cost = ev.cost_range[0] + Math.random() * (ev.cost_range[1] - ev.cost_range[0]);
+    var payoutRatio = 0.5 + Math.random() * 0.5;  // 50-100% coverage ratio
+    var claimAmt = cost * payoutRatio;
+    h += '<div class="claim-item">';
+    h += '<div class="claim-header"><span class="claim-event">⚠️ ' + ev.name + '</span><span class="claim-amount">可赔 ¥' + fmt(claimAmt) + '</span></div>';
+    h += '<div class="claim-detail">涉及保单: ' + matchingPol.name + ' | 预估损失: ¥' + fmt(cost) + ' | 赔付比例: ' + safeFixed(payoutRatio*100,0) + '%</div>';
+    var btnId = "claimbtn_" + ei;
+    h += '<button class="btn-claim" id="' + btnId + '">发起理赔</button>';
+    h += '</div>';
+    (function(bid,en,et,c,ca,pid){
+      document.getElementById(bid).onclick = function(){ createAndSubmitClaim(en,et,c,ca,pid); };
+    })(btnId,ev.name,ev.type,safeFixed(cost,0),safeFixed(claimAmt,0),matchingPol.id);
+  }
+  if (Object.keys(usedTypes).length === 0) {
+    h += '<div style="text-align:center;color:#555;padding:20px;">暂无可理赔事件</div>';
+  }
+  c.innerHTML = h;
+}
+
+function createAndSubmitClaim(eventName, eventType, lossCost, claimAmt, policyId) {
+  var lock = checkMasterLock();
+  if (!lock.ok) { alert("母锁验证失败: " + lock.msg); return; }
+  var s = loadState(); if (!s) return;
+  var d = getInsData(s);
+  var pol = (d.policies||[]).find(function(p){return p.id === policyId;});
+  if (!pol) { alert("保单不存在"); return; }
+  var claim = {
+    id: "claim_" + Date.now(),
+    policyId: policyId,
+    policyName: pol.name,
+    eventName: eventName,
+    eventType: eventType,
+    lossCost: lossCost,
+    claimAmount: claimAmt,
+    round: s.round || 0,
+    status: "approved"
+  };
+  d.claims.push(claim);
+  saveState(s);
+  alert("✅ 理赔已受理！\n事件: " + eventName + "\n赔款金额: ¥" + fmt(claimAmt) + "\n点击\"领取赔款\"到账");  renderOverview();
+  renderClaims();
+}
+
+function receiveClaim(claimId) {
+  var lock = checkMasterLock();
+  if (!lock.ok) { alert("母锁验证失败: " + lock.msg); return; }
+  var s = loadState(); if (!s) return;
+  var d = getInsData(s);
+  var claim = (d.claims||[]).find(function(c){return c.id === claimId;});
+  if (!claim || claim.status !== "approved") { alert("该理赔不可领取"); return; }
+  s.cash = (s.cash || 0) + claim.claimAmount;
+  claim.status = "paid";
+  d.totalClaimed = (d.totalClaimed || 0) + claim.claimAmount;
+  saveState(s);
+  alert("✅ 赔款已到账！¥" + fmt(claim.claimAmount));
+  renderOverview();
+  renderClaims();
+}
+
+function processInsuranceRenewals(roundNum) {
+  var s = loadState(); if (!s) return;
+  var d = getInsData(s);
+  if (!d.policies) return;
+  var renewedCount = 0;
+  d.policies.forEach(function(p) {
+    if (p.status !== "active") return;
+    p.remainingMonths = (p.remainingMonths || p.termMonths) - 1;
+    if (p.remainingMonths <= 0) {
+      p.status = "expired";
+      renewedCount++;
+    } else {
+      // Deduct monthly premium (annual / 12)
+      var monthlyPrem = p.annualPremium / 12;
+      if ((s.cash || 0) >= monthlyPrem) {
+        s.cash -= monthlyPrem;
+        d.totalPremium = (d.totalPremium || 0) + monthlyPrem;
+      } else {
+        // Insufficient funds - policy lapses
+        p.status = "expired";
+        renewedCount++;
+      }
+    }
+  });
+  if (renewedCount > 0) saveState(s);
+  return renewedCount;
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>两地汇款系统</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: #0a0e1a; color: #e0e0e0;
+    min-height: 100vh;
+    display: flex; justify-content: center; align-items: center;
+    padding: 20px;
+}
+body::before {
+    content: ''; position: fixed; top:0; left:0; width:100%; height:100%;
+    background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 50px 50px; pointer-events: none; z-index: 0;
+}
+.container {
+    width: 900px; max-width: 100%;
+    background: rgba(13,17,23,0.95); border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 12px; padding: 24px; position: relative; z-index: 1;
+    backdrop-filter: blur(10px);
+}
+.container::before {
+    content: ''; position: absolute; top:0; left:0; right:0; height:1px;
+    background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+    opacity: 0.5;
+}
+h1 { font-size: 18px; color: #00e5ff; margin-bottom: 4px; }
+.subtitle { font-size: 12px; color: #555; margin-bottom: 20px; }
+
+.lock-bar {
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,82,82,0.3);
+    border-radius: 6px; padding: 10px 14px; margin-bottom: 18px;
+    font-size: 12px; display: flex; align-items: center; gap: 8px;
+}
+.lock-bar.ok { border-color: rgba(0,230,118,0.3); }
+.lock-icon { font-size: 16px; }
+
+.section { margin-bottom: 20px; }
+.section-title { font-size: 13px; color: #00e5ff; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid rgba(0,229,255,0.15); }
+
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .card-grid { grid-template-columns: 1fr; } }
+
+.card-box {
+    background: rgba(20,25,35,0.8); border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 8px; padding: 14px;
+}
+.card-box label { font-size: 11px; color: #888; display: block; margin-bottom: 6px; }
+.card-box select {
+    width: 100%; padding: 8px 10px; background: #0d1117; color: #e0e0e0;
+    border: 1px solid rgba(0,229,255,0.2); border-radius: 6px;
+    font-size: 13px; font-family: inherit;
+}
+.card-box select:focus { outline: none; border-color: #00e5ff; }
+
+.bank-info { font-size: 11px; color: #666; margin-top: 6px; }
+.bank-info .region { color: #00e5ff; }
+
+.amount-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 12px; flex-wrap: wrap; }
+.amount-group { flex: 1; min-width: 120px; }
+.amount-group label { font-size: 11px; color: #888; display: block; margin-bottom: 6px; }
+.amount-group input, .amount-group select {
+    width: 100%; padding: 8px 10px; background: #0d1117; color: #e0e0e0;
+    border: 1px solid rgba(0,229,255,0.2); border-radius: 6px;
+    font-size: 13px; font-family: inherit;
+}
+.amount-group input:focus, .amount-group select:focus { outline: none; border-color: #00e5ff; }
+
+.preview-box {
+    background: rgba(0,229,255,0.04); border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 8px; padding: 14px; margin-bottom: 14px;
+    font-size: 12px; line-height: 1.8;
+}
+.preview-box .row { display: flex; justify-content: space-between; }
+.preview-box .label { color: #888; }
+.preview-box .value { color: #e0e0e0; font-weight: 600; }
+.preview-box .value.red { color: #ff5252; }
+.preview-box .value.green { color: #00e676; }
+.preview-box .divider { border: none; border-top: 1px solid rgba(0,229,255,0.1); margin: 8px 0; }
+
+.btn-row { display: flex; gap: 10px; }
+.btn {
+    padding: 10px 20px; border-radius: 6px; font-size: 13px;
+    font-family: inherit; cursor: pointer; transition: all 0.15s;
+    border: 1px solid;
+}
+.btn-primary { background: rgba(0,229,255,0.1); border-color: rgba(0,229,255,0.4); color: #00e5ff; }
+.btn-primary:hover { background: rgba(0,229,255,0.2); }
+.btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-cancel { background: rgba(255,82,82,0.1); border-color: rgba(255,82,82,0.4); color: #ff5252; }
+.btn-cancel:hover { background: rgba(255,82,82,0.2); }
+
+.history-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.history-table th { text-align: left; color: #888; padding: 8px 10px; border-bottom: 1px solid rgba(0,229,255,0.1); font-weight: 500; }
+.history-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.history-table tr:hover td { background: rgba(0,229,255,0.03); }
+.status-pending { color: #ffd740; }
+.status-done { color: #00e676; }
+.status-failed { color: #ff5252; }
+
+.toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.9); border: 1px solid #333; border-radius: 8px;
+    padding: 10px 20px; font-size: 13px; z-index: 1000;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2s forwards;
+}
+.toast.error { border-color: #ff5252; color: #ff5252; }
+.toast.success { border-color: #00e5ff; color: #00e5ff; }
+@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+@keyframes toastOut { from { opacity:1; } to { opacity:0; } }
+
+.empty { text-align: center; color: #444; padding: 30px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>🌍 两地汇款系统</h1>
+    <div class="subtitle">Cross-Border Remittance System v1.0 · 支持人民币/港币/美元汇款</div>
+
+    <div id="lockBar" class="lock-bar">
+        <span class="lock-icon">⚠️</span>
+        <span id="lockText">正在检查母锁状态...</span>
+    </div>
+
+    <div class="section">
+        <div class="section-title">① 选择汇款账户</div>
+        <div class="card-grid">
+            <div class="card-box">
+                <label>汇出银行 / 账户</label>
+                <select id="fromCard" onchange="onFromChange()">
+                    <option value="">-- 请选择 --</option>
+                </select>
+                <div id="fromInfo" class="bank-info" style="display:none;">
+                    地区: <span class="region" id="fromRegion"></span> ·
+                    余额: <span id="fromBalance"></span>
+                </div>
+            </div>
+            <div class="card-box">
+                <label>收款银行 / 账户</label>
+                <select id="toCard">
+                    <option value="">-- 请选择 --</option>
+                </select>
+                <div id="toInfo" class="bank-info" style="display:none;">
+                    地区: <span class="region" id="toRegion"></span> ·
+                    余额: <span id="toBalance"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">② 填写汇款信息</div>
+        <div class="amount-row">
+            <div class="amount-group" style="flex:1.2;">
+                <label>汇款金额</label>
+                <input type="number" id="remitAmount" placeholder="输入金额" min="1" oninput="updatePreview()">
+            </div>
+            <div class="amount-group">
+                <label>汇出币种</label>
+                <select id="fromCurrency" onchange="updatePreview()">
+                    <option value="CNY">人民币 CNY</option>
+                    <option value="HKD">港币 HKD</option>
+                    <option value="USD">美元 USD</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" id="previewSection" style="display:none;">
+        <div class="section-title">③ 汇款预览</div>
+        <div class="preview-box" id="previewBox"></div>
+        <div class="btn-row">
+            <button class="btn btn-primary" id="submitBtn" onclick="submitRemittance()">确认汇款</button>
+            <button class="btn btn-cancel" onclick="resetForm()">重置</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📋 汇款记录</div>
+        <div id="historyTable"></div>
+    </div>
+</div>
+
+<div id="chequePreview" style="position:fixed;left:-9999px;top:0;width:800px;height:480px;background:#fff;border:3px solid #b71c1c;font-family:'Microsoft YaHei','PingFang SC',sans-serif;box-sizing:border-box;overflow:hidden;">
+  <div style="background:#b71c1c;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;">
+    <span id="cpBank" style="font-size:24px;font-weight:bold;"></span>
+    <span style="font-size:13px;">No. <span id="cpNo">00000000</span></span>
+  </div>
+  <div style="padding:24px 28px;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:10px;">
+      <span style="font-size:15px;color:#333;padding-top:4px;">收款人 / <span id="cpHolder" style="font-weight:bold;"></span></span>
+      <div style="text-align:right;">
+        <span id="cpAmount" style="font-size:28px;color:#b71c1c;font-weight:bold;display:block;"></span>
+        <span id="cpStatus" style="font-size:14px;font-weight:bold;color:#c90;border:2px solid currentColor;padding:3px 10px;border-radius:4px;display:inline-block;margin-top:4px;"></span>
+      </div>
+    </div>
+    <div style="font-size:13px;color:#888;margin-bottom:12px;">大写金额：<span id="cpCn" style="color:#555;font-weight:600;"></span></div>
+    <div style="border-bottom:1px solid #ddd;margin-bottom:18px;"></div>
+    <div style="font-size:14px;color:#333;line-height:2.2;">
+      <div>出票银行：<span id="cpAtm"></span></div>
+      <div>卡　　号：<span id="cpCard"></span></div>
+      <div>日　　期：<span id="cpDate"></span></div>
+    </div>
+    <div id="cpCancel" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:48px;color:#e74c3c;border:4px solid #e74c3c;padding:10px 30px;border-radius:8px;opacity:0.7;pointer-events:none;">已 注 销</div>
+  </div>
+  <div style="position:absolute;bottom:14px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:11px;color:#bbb;">
+    <span>InvestSim 支票系统 v1.0 | 仅供投资模拟使用</span>
+    <span>Generated: 2026-06-03</span>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script>
+// ===== 银行配置 =====
+const BANKS = {
+    icbc: { name: '工商银行', region: 'mainland' },
+    ccb:  { name: '建设银行', region: 'mainland' },
+    boc:  { name: '中国银行', region: 'mainland' },
+    abc:  { name: '农业银行', region: 'mainland' },
+    hsbc: { name: '汇丰银行', region: 'hongkong' },
+    hangseng: { name: '恒生银行', region: 'hongkong' },
+    bochk: { name: '中银香港', region: 'hongkong' },
+    sc: { name: '渣打银行', region: 'hongkong' },
+    boe:  { name: '英格兰银行', region: 'uk' },
+    hsbc_uk: { name: 'HSBC UK', region: 'uk' }
+};
+const CARD_REGISTRY = {"427721947812932033":{"bank":"icbc","holder":"冯程轩"},"6257091287019652":{"bank":"icbc","holder":"中国人民大学"},"6257608303684569":{"bank":"icbc","holder":"北京师范大学"},"6256960555482116":{"bank":"icbc","holder":"中国农业大学"},"6258936136932259":{"bank":"icbc","holder":"东莞市第二高级中学"},"6222356126761078686":{"bank":"icbc","holder":"复旦大学"},"6222802225595725722":{"bank":"ccb","holder":"上海交通大学"},"6993475370026539779":{"bank":"ccb","holder":"北京航空航天大学"},"6993477499972608074":{"bank":"ccb","holder":"中国科学院大学"},"6993478055491680481":{"bank":"ccb","holder":"北京科技大学"},"6993477200026359281":{"bank":"ccb","holder":"东莞市第七高级中学"},"6857949556405107945":{"bank":"boc","holder":"北京理工大学"},"6857945236057598066":{"bank":"boc","holder":"北京协和医学院"},"6857941846317114624":{"bank":"boc","holder":"北京交通大学"},"6857948273017407128":{"bank":"boc","holder":"东莞市第八高级中学(①)"},"8727503248106057":{"bank":"boc","holder":"东莞市第八高级中学(②)"},"6222809535503965036":{"bank":"boc","holder":"同济大学"},"6222808480706815121":{"bank":"abc","holder":"华东师范大学/上海财经大学"},"245941620609428422":{"bank":"hsbc","holder":"东莞市第二高级中学"},"6222807299293970759":{"bank":"hsbc","holder":"华东师范大学"},"6222807846702561206":{"bank":"hsbc","holder":"复旦大学"},"6222808932201878052":{"bank":"hangseng","holder":"同济大学"},"6222802706288717432":{"bank":"bochk","holder":"上海交通大学"},"69852936050580755":{"bank":"sc","holder":"东莞市第七高级中学"},"62193400809416219531":{"bank":"boe","holder":"叶珒铭"},"62193401309416219531":{"bank":"boe","holder":"叶珒铭"},"8793400209413219531":{"bank":"hsbc_uk","holder":"叶珒铭"},"8793403509413219531":{"bank":"hsbc_uk","holder":"叶珒铭"}};
+
+const EXCHANGE_RATES = { CNY_HKD: 1.08, CNY_USD: 0.14, HKD_USD: 0.13 };
+const REMITTANCE_FEE_RATE = 0.01;
+const REMITTANCE_MIN_FEE = 10;
+
+// ===== 工具函数 =====
+function getState() {
+    try { return JSON.parse(localStorage.getItem('investSimState_v13') || '{}'); }
+    catch(e) { return {}; }
+}
+function saveState(s) { localStorage.setItem('investSimState_v13', JSON.stringify(s)); }
+
+function getCardBalance(card, currency) {
+    const s = getState();
+    if (!s.cardBalances) return 0;
+    const b = s.cardBalances[card];
+    if (!b) return 0;
+    if (typeof b === 'number') return currency === 'CNY' ? b : 0;
+    return b[currency || 'CNY'] || 0;
+}
+
+function getCardCredit(card) {
+    const s = getState();
+    return (s.cardCredits && s.cardCredits[card] != null) ? s.cardCredits[card] : 1.0;
+}
+
+function getBankRegion(cardNo) {
+    const info = CARD_REGISTRY[cardNo];
+    if (!info) return 'unknown';
+    const bank = BANKS[info.bank];
+    return bank ? bank.region : 'unknown';
+}
+
+function isCrossBorder(fromCard, toCard) {
+    return getBankRegion(fromCard) !== getBankRegion(toCard);
+}
+
+function convertCurrency(amount, fromCur, toCur) {
+    if (fromCur === toCur) return amount;
+    const key = fromCur + '_' + toCur;
+    const rev = toCur + '_' + fromCur;
+    if (EXCHANGE_RATES[key]) return amount * EXCHANGE_RATES[key];
+    if (EXCHANGE_RATES[rev]) return amount / EXCHANGE_RATES[rev];
+    // 间接换算
+    if (fromCur === 'CNY' && toCur === 'USD') return amount * EXCHANGE_RATES.CNY_USD;
+    if (fromCur === 'USD' && toCur === 'CNY') return amount / EXCHANGE_RATES.CNY_USD;
+    if (fromCur === 'HKD' && toCur === 'CNY') return amount / EXCHANGE_RATES.CNY_HKD;
+    if (fromCur === 'CNY' && toCur === 'HKD') return amount * EXCHANGE_RATES.CNY_HKD;
+    if (fromCur === 'HKD' && toCur === 'USD') return amount * EXCHANGE_RATES.HKD_USD;
+    if (fromCur === 'USD' && toCur === 'HKD') return amount / EXCHANGE_RATES.HKD_USD;
+    return amount;
+}
+
+function calcFee(amountCNY) {
+    return Math.max(REMITTANCE_MIN_FEE, Math.round(amountCNY * REMITTANCE_FEE_RATE * 100) / 100);
+}
+
+// ===== 母锁检查 =====
+function getMasterToken() {
+    try { return JSON.parse(localStorage.getItem('invest_sim_master')); }
+    catch(e) { return null; }
+}
+function checkMasterLock() {
+    const token = getMasterToken();
+    if (!token) return false;
+    if (!token.ts || !token.status) return false;
+    if (Date.now() - token.ts > 3600000) return false;
+    return true;
+}
+
+function updateLockBar() {
+    const ok = checkMasterLock();
+    const bar = document.getElementById('lockBar');
+    const text = document.getElementById('lockText');
+    if (ok) {
+        bar.className = 'lock-bar ok';
+        text.innerHTML = '🔒 母锁正常 · 系统已授权';
+    } else {
+        bar.className = 'lock-bar';
+        text.innerHTML = '⚠️ 母锁离线 · 请先打开投资模拟器';
+    }
+}
+
+// ===== 下拉框填充（收款账户仅限香港/英国）=====
+function populateCards() {
+    const fromSel = document.getElementById('fromCard');
+    const toSel = document.getElementById('toCard');
+    const cards = Object.entries(CARD_REGISTRY);
+    let fromHTML = '<option value="">-- 请选择汇出账户 --</option>';
+    let toHTML   = '<option value="">-- 请选择收款账户（仅限香港/英国） --</option>';
+    cards.forEach(([cardNo, info]) => {
+        const bank = BANKS[info.bank];
+        const regionLabel = bank && bank.region === 'hongkong' ? '🇭🇰 香港' : bank && bank.region === 'uk' ? '🇬🇧 英国' : '🇨🇳 内地';
+        const label = (info.holder || '') + ' · ' + (bank ? bank.name : '') + ' · ' + regionLabel + ' · ' + cardNo.slice(0,4) + '****' + cardNo.slice(-4);
+        fromHTML += '<option value="' + cardNo + '">' + label + '</option>';
+        // 收款账户仅限香港或英国地区
+        if (bank && (bank.region === 'hongkong' || bank.region === 'uk')) {
+            toHTML += '<option value="' + cardNo + '">' + label + '</option>';
+        }
+    });
+    fromSel.innerHTML = fromHTML;
+    toSel.innerHTML = toHTML;
+}
+
+// ===== 汇出/收款账户变化 =====
+function onFromChange() {
+    const cardNo = document.getElementById('fromCard').value;
+    const infoDiv = document.getElementById('fromInfo');
+    if (!cardNo) { infoDiv.style.display = 'none'; updatePreview(); return; }
+    const info = CARD_REGISTRY[cardNo];
+    const bank = BANKS[info.bank];
+    document.getElementById('fromRegion').textContent = bank && bank.region === 'hongkong' ? '🇭🇰 香港' : '🇨🇳 内地';
+    const s = getState();
+    const b = s.cardBalances && s.cardBalances[cardNo];
+    let balStr = '';
+    if (typeof b === 'number') balStr = '¥' + b.toFixed(2);
+    else if (b) balStr = '¥' + (b.CNY||0).toFixed(2) + ' / HK$' + (b.HKD||0).toFixed(2) + ' / $' + (b.USD||0).toFixed(2);
+    else balStr = '¥0.00';
+    document.getElementById('fromBalance').textContent = balStr;
+    infoDiv.style.display = 'block';
+    updatePreview();
+}
+
+function onToChange() {
+    // 使用事件委托或直接在select上加onchange
+    const cardNo = document.getElementById('toCard').value;
+    const infoDiv = document.getElementById('toInfo');
+    if (!cardNo) { infoDiv.style.display = 'none'; updatePreview(); return; }
+    const info = CARD_REGISTRY[cardNo];
+    const bank = BANKS[info.bank];
+    document.getElementById('toRegion').textContent = bank && bank.region === 'hongkong' ? '🇭🇰 香港' : '🇨🇳 内地';
+    const s = getState();
+    const b = s.cardBalances && s.cardBalances[cardNo];
+    let balStr = '';
+    if (typeof b === 'number') balStr = '¥' + b.toFixed(2);
+    else if (b) balStr = '¥' + (b.CNY||0).toFixed(2) + ' / HK$' + (b.HKD||0).toFixed(2) + ' / $' + (b.USD||0).toFixed(2);
+    else balStr = '¥0.00';
+    document.getElementById('toBalance').textContent = balStr;
+    infoDiv.style.display = 'block';
+    updatePreview();
+}
+
+// 绑定 toCard 的 onchange
+window.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('toCard').addEventListener('change', onToChange);
+});
+
+// ===== 汇款预览 =====
+function updatePreview() {
+    const fromCard = document.getElementById('fromCard').value;
+    const toCard   = document.getElementById('toCard').value;
+    const amount   = parseFloat(document.getElementById('remitAmount').value) || 0;
+    const currency = document.getElementById('fromCurrency').value;
+    const section  = document.getElementById('previewSection');
+    const box      = document.getElementById('previewBox');
+
+    if (!fromCard || !toCard || amount <= 0) {
+        section.style.display = 'none';
+        return;
+    }
+    if (fromCard === toCard) {
+        section.style.display = 'none';
+        showToast('汇出和收款账户不能相同', 'error');
+        return;
+    }
+
+    const crossBorder = isCrossBorder(fromCard, toCard);
+    const fromRegion = getBankRegion(fromCard);
+    const toRegion   = getBankRegion(toCard);
+
+    // 计算手续费（以CNY计价）
+    let feeCNY = 0;
+    if (crossBorder) {
+        const amountCNY = (currency === 'CNY') ? amount : convertCurrency(amount, currency, 'CNY');
+        feeCNY = calcFee(amountCNY);
+    }
+
+    // 到账金额（扣除手续费后，换算为目标币种）
+    const amountCNY2 = (currency === 'CNY') ? amount : convertCurrency(amount, currency, 'CNY');
+    const netCNY = amountCNY2 - feeCNY;
+    // 目标账户默认币种
+    const targetCurrency = toRegion === 'hongkong' ? 'HKD' : 'CNY';
+    const netReceived = crossBorder ? convertCurrency(netCNY, 'CNY', targetCurrency) : (currency === targetCurrency ? amount - feeCNY : convertCurrency(amount, currency, targetCurrency));
+
+    // 检查余额
+    const availBalance = getCardBalance(fromCard, currency);
+    const totalDebit = amount + (crossBorder ? convertCurrency(feeCNY, 'CNY', currency) : feeCNY);
+    const insufficient = availBalance < totalDebit;
+
+    let html = '';
+    html += '<div class="row"><span class="label">汇出账户</span><span class="value">' + CARD_REGISTRY[fromCard].holder + '</span></div>';
+    html += '<div class="row"><span class="label">收款账户</span><span class="value">' + CARD_REGISTRY[toCard].holder + '</span></div>';
+    html += '<hr class="divider">';
+    html += '<div class="row"><span class="label">汇款金额</span><span class="value">' + (currency==='CNY'?'¥':currency==='HKD'?'HK$':'$') + amount.toFixed(2) + ' (' + currency + ')</span></div>';
+    html += '<div class="row"><span class="label">跨境汇款</span><span class="value" style="color:' + (crossBorder?'#ffd740':'#00e676') + '">' + (crossBorder ? '是 · 手续费 1%' : '否 · 同行免费') + '</span></div>';
+    if (crossBorder) {
+        html += '<div class="row"><span class="label">手续费 (CNY等值)</span><span class="value red">¥' + feeCNY.toFixed(2) + '</span></div>';
+        html += '<div class="row"><span class="label">汇率</span><span class="value">' + currency + '→' + targetCurrency + ' 参考: ' + (currency==='CNY'&&targetCurrency==='HKD'?'1.08':currency==='CNY'&&targetCurrency==='USD'?'0.14':currency==='HKD'&&targetCurrency==='USD'?'0.13':'1.00') + '</span></div>';
+    }
+    html += '<hr class="divider">';
+    html += '<div class="row"><span class="label">预计到账</span><span class="value green">' + (targetCurrency==='CNY'?'¥':targetCurrency==='HKD'?'HK$':'$') + ' ' + netReceived.toFixed(2) + ' (' + targetCurrency + ')</span></div>';
+    html += '<div class="row"><span class="label">可用余额 (' + currency + ')</span><span class="value' + (insufficient?' red':'') + '">' + availBalance.toFixed(2) + (insufficient?' ⚠️ 余额不足':'') + '</span></div>';
+    if (crossBorder) {
+        const delay = Math.floor(Math.random()*151) + 50;
+        html += '<div class="row"><span class="label">预计到账回合</span><span class="value">+' + delay + ' 回合</span></div>';
+    } else {
+        html += '<div class="row"><span class="label">到账</span><span class="value green">即时</span></div>';
+    }
+    box.innerHTML = html;
+    section.style.display = 'block';
+    document.getElementById('submitBtn').disabled = insufficient;
+}
+
+// ===== 提交汇款 =====
+function submitRemittance() {
+    if (!checkMasterLock()) {
+        showToast('母锁离线，拒绝汇款', 'error');
+        return;
+    }
+    const fromCard = document.getElementById('fromCard').value;
+    const toCard   = document.getElementById('toCard').value;
+    const amount   = parseFloat(document.getElementById('remitAmount').value) || 0;
+    const currency = document.getElementById('fromCurrency').value;
+
+    if (!fromCard || !toCard || amount <= 0) {
+        showToast('请填写完整汇款信息', 'error');
+        return;
+    }
+    if (fromCard === toCard) {
+        showToast('汇出和收款账户不能相同', 'error');
+        return;
+    }
+
+    const crossBorder = isCrossBorder(fromCard, toCard);
+    const fromRegion = getBankRegion(fromCard);
+    const toRegion   = getBankRegion(toCard);
+    const targetCurrency = toRegion === 'hongkong' ? 'HKD' : 'CNY';
+
+    // 检查信用分
+    const credit = getCardCredit(fromCard);
+    if (credit <= 0.1) {
+        showToast('账户已冻结，无法汇款', 'error');
+        return;
+    }
+
+    // 计算手续费
+    let feeCNY = 0;
+    if (crossBorder) {
+        const amountCNY = (currency === 'CNY') ? amount : convertCurrency(amount, currency, 'CNY');
+        feeCNY = calcFee(amountCNY);
+    }
+
+    // 从汇出账户扣款
+    const s = getState();
+    if (!s.cardBalances) s.cardBalances = {};
+    if (!s.cardBalances[fromCard] || typeof s.cardBalances[fromCard] === 'number') {
+        const old = s.cardBalances[fromCard] || 0;
+        s.cardBalances[fromCard] = { CNY: typeof old === 'number' ? old : 0, HKD: 0, USD: 0 };
+    }
+    const debit = crossBorder ? (currency === 'CNY' ? amount + feeCNY : convertCurrency(amount, currency, 'CNY') + feeCNY) : amount + feeCNY;
+    // 简化处理：从指定币种扣款
+    s.cardBalances[fromCard][currency] = (s.cardBalances[fromCard][currency] || 0) - amount;
+    if (crossBorder) {
+        // 手续费从CNY扣除（如果CNY不足则从原币种扣）
+        const feeInCurrency = (currency === 'CNY') ? feeCNY : convertCurrency(feeCNY, 'CNY', currency);
+        s.cardBalances[fromCard][currency] -= feeInCurrency;
+    }
+
+    // 检查保底
+    const newBal = s.cardBalances[fromCard][currency] || 0;
+    if (newBal < 0) {
+        showToast('余额不足，无法完成汇款', 'error');
+        // 回滚
+        s.cardBalances[fromCard][currency] += amount + (crossBorder ? (currency === 'CNY' ? feeCNY : convertCurrency(feeCNY, 'CNY', currency)) : 0);
+        saveState(s);
+        return;
+    }
+
+    // 信用分检查
+    const totalBal = (s.cardBalances[fromCard].CNY||0) + (s.cardBalances[fromCard].HKD||0)*0.93 + (s.cardBalances[fromCard].USD||0)*7.14;
+    if (totalBal < 1000) {
+        s.cardCredits = s.cardCredits || {};
+        s.cardCredits[fromCard] = Math.max(0.1, Math.round((s.cardCredits[fromCard]||1.0) / 2 * 10) / 10);
+    }
+
+    // 创建汇款记录
+    const remittance = {
+        id: Date.now(),
+        fromCard: fromCard,
+        toCard: toCard,
+        amount: amount,
+        currency: currency,
+        fee: crossBorder ? feeCNY : 0,
+        crossBorder: crossBorder,
+        targetCurrency: targetCurrency,
+        status: crossBorder ? 'pending' : 'done',
+        createdRound: (s.round || 0),
+        arriveRound: crossBorder ? (s.round || 0) + Math.floor(Math.random()*151)+50 : (s.round || 0),
+        date: Date.now()
+    };
+
+    s.remittances = s.remittances || [];
+    s.remittances.unshift(remittance);
+    if (s.remittances.length > 200) s.remittances.length = 200;
+
+    // 如果不是跨境，立即到账
+    if (!crossBorder) {
+        if (!s.cardBalances[toCard] || typeof s.cardBalances[toCard] === 'number') {
+            const old2 = s.cardBalances[toCard] || 0;
+            s.cardBalances[toCard] = { CNY: typeof old2 === 'number' ? old2 : 0, HKD: 0, USD: 0 };
+        }
+        s.cardBalances[toCard][targetCurrency] = (s.cardBalances[toCard][targetCurrency]||0) + amount;
+    } else {
+        // 加入待处理队列（由 invest-sim.html 处理）
+        s.pendingRemittances = s.pendingRemittances || [];
+        s.pendingRemittances.push(remittance);
+    }
+
+    saveState(s);
+    showToast('汇款提交成功！' + (crossBorder ? ' 跨境汇款将在' + (remittance.arriveRound - remittance.createdRound) + '回合后到账' : ' 已即时到账'), 'success');
+    resetForm();
+    renderHistory();
+}
+
+function resetForm() {
+    document.getElementById('fromCard').value = '';
+    document.getElementById('toCard').value = '';
+    document.getElementById('remitAmount').value = '';
+    document.getElementById('fromCurrency').value = 'CNY';
+    document.getElementById('fromInfo').style.display = 'none';
+    document.getElementById('toInfo').style.display = 'none';
+    document.getElementById('previewSection').style.display = 'none';
+}
+
+// ===== 汇款记录 =====
+function renderHistory() {
+    const s = getState();
+    const list = s.remittances || [];
+    const div = document.getElementById('historyTable');
+    if (list.length === 0) {
+        div.innerHTML = '<div class="empty">暂无汇款记录</div>';
+        return;
+    }
+    let html = '<table class="history-table"><thead><tr>' +
+        '<th>时间</th><th>汇出</th><th>收款</th><th>金额</th><th>状态</th></tr></thead><tbody>';
+    list.slice(0, 50).forEach(r => {
+        const fromInfo = CARD_REGISTRY[r.fromCard];
+        const toInfo   = CARD_REGISTRY[r.toCard];
+        const d = new Date(r.date);
+        const ds = d.getFullYear()+'/' +('0'+(d.getMonth()+1)).slice(-2)+'/'+('0'+d.getDate()).slice(-2);
+        const statusCls = r.status === 'done' ? 'status-done' : r.status === 'pending' ? 'status-pending' : 'status-failed';
+        const statusLabel = r.status === 'done' ? '已到账' : r.status === 'pending' ? '处理中' : '失败';
+        html += '<tr>' +
+            '<td>' + ds + '</td>' +
+            '<td>' + (fromInfo?fromInfo.holder:'未知') + '</td>' +
+            '<td>' + (toInfo?toInfo.holder:'未知') + '</td>' +
+            '<td>' + (r.currency==='CNY'?'¥':r.currency==='HKD'?'HK$':'$') + (r.amount||0).toFixed(2) + '</td>' +
+            '<td class="' + statusCls + '">' + statusLabel + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table>';
+    div.innerHTML = html;
+}
+
+// ===== Toast =====
+function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast ' + (type || '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
+
+// ===== 初始化 =====
+updateLockBar();
+populateCards();
+renderHistory();
+setInterval(updateLockBar, 5000);
+</script>
+</body>
+</html>

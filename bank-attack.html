@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏦 银行渗透攻击平台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0f;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+        }
+        .bank-attack-platform {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(220, 20, 60, 0.3);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            color: #dc143c;
+            text-shadow: 0 0 15px rgba(220, 20, 60, 0.4);
+        }
+        .header .subtitle {
+            font-size: 11px;
+            color: #888;
+            margin-top: 6px;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: rgba(220, 20, 60, 0.06);
+            border: 1px solid rgba(220, 20, 60, 0.2);
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        .status-bar .score { color: #ffd700; font-weight: 600; }
+        .status-bar .rep { color: #ce93d8; }
+        .status-bar .trace { color: #ff1744; }
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #dc143c;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(220, 20, 60, 0.15);
+            padding-bottom: 6px;
+        }
+        .btn {
+            padding: 8px 16px;
+            background: rgba(220, 20, 60, 0.12);
+            border: 1px solid rgba(220, 20, 60, 0.3);
+            color: #ff6b6b;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+            margin: 3px;
+        }
+        .btn:hover { background: rgba(220, 20, 60, 0.22); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-success {
+            border-color: rgba(0, 230, 118, 0.3); color: #00e676;
+            background: rgba(0, 230, 118, 0.08);
+        }
+        .btn-danger {
+            border-color: rgba(255, 23, 68, 0.3); color: #ff1744;
+            background: rgba(255, 23, 68, 0.08);
+        }
+
+        /* 银行卡片 */
+        .bank-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 10px;
+        }
+        .bank-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.25s;
+            position: relative;
+        }
+        .bank-card:hover {
+            border-color: rgba(220, 20, 60, 0.35);
+            background: rgba(220, 20, 60, 0.04);
+            transform: translateY(-2px);
+        }
+        .bank-card.selected {
+            border-color: rgba(255, 215, 0, 0.5);
+            background: rgba(255, 215, 0, 0.05);
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.1);
+        }
+        .bank-card.cooldown {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .bank-card .cooldown-overlay {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 22px; color: #ff1744;
+        }
+        .bank-name {
+            font-size: 14px; font-weight: bold; color: #ffd700;
+        }
+        .bank-region {
+            display: inline-block;
+            font-size: 9px; padding: 1px 6px; border-radius: 3px;
+            margin-left: 6px; vertical-align: middle;
+        }
+        .region-cn { background: rgba(255, 23, 68, 0.2); color: #ff6b6b; }
+        .region-hk { background: rgba(255, 152, 0, 0.2); color: #ffb74d; }
+        .region-uk { background: rgba(66, 133, 244, 0.2); color: #82b1ff; }
+        .bank-info {
+            font-size: 11px; color: #888; margin-top: 4px;
+        }
+        .bank-balance {
+            font-size: 12px; color: #00e676; margin-top: 3px;
+        }
+        .bank-defense {
+            font-size: 10px; color: #888; margin-top: 2px;
+        }
+        .defense-stars { color: #ffd700; letter-spacing: 1px; }
+
+        /* 攻击方式按钮 */
+        .attack-methods {
+            display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap;
+        }
+        .method-btn {
+            flex: 1; min-width: 120px; padding: 12px 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px; text-align: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .method-btn:hover {
+            border-color: rgba(220, 20, 60, 0.35);
+            background: rgba(220, 20, 60, 0.04);
+        }
+        .method-btn .icon { font-size: 26px; }
+        .method-btn .name { font-size: 12px; color: #ff6b6b; margin-top: 4px; font-weight: 600; }
+        .method-btn .desc { font-size: 10px; color: #777; margin-top: 2px; }
+        .method-btn .risk {
+            font-size: 9px; margin-top: 4px; padding: 2px 6px; border-radius: 3px; display: inline-block;
+        }
+        .risk-low { background: rgba(0, 230, 118, 0.15); color: #00e676; }
+        .risk-mid { background: rgba(255, 152, 0, 0.15); color: #ffb74d; }
+        .risk-high { background: rgba(255, 23, 68, 0.15); color: #ff6b6b; }
+        .risk-extreme { background: rgba(156, 39, 176, 0.15); color: #ce93d8; }
+
+        /* 答题区 */
+        .quiz-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(220, 20, 60, 0.18);
+            border-radius: 6px; padding: 16px; margin: 10px 0;
+        }
+        .quiz-question {
+            font-size: 13px; color: #ffd700; margin-bottom: 12px; line-height: 1.5;
+        }
+        .quiz-options {
+            display: flex; flex-direction: column; gap: 7px;
+        }
+        .quiz-option {
+            padding: 11px 14px; background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 4px;
+            cursor: pointer; font-size: 12px; transition: all 0.2s;
+        }
+        .quiz-option:hover {
+            border-color: rgba(220, 20, 60, 0.3); background: rgba(220, 20, 60, 0.05);
+        }
+        .quiz-option.correct { border-color: #00e676; background: rgba(0, 230, 118, 0.1); }
+        .quiz-option.wrong { border-color: #ff1744; background: rgba(255, 23, 68, 0.1); }
+
+        /* 渗透概率界面 */
+        .infiltration-box {
+            text-align: center; padding: 20px;
+        }
+        .infiltration-dice {
+            font-size: 48px; margin: 15px 0;
+            animation: diceRoll 0.5s ease-out;
+        }
+        @keyframes diceRoll {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.3); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        .infiltration-progress {
+            width: 100%; height: 8px; background: rgba(255,255,255,0.08);
+            border-radius: 4px; overflow: hidden; margin: 12px 0;
+        }
+        .infiltration-fill {
+            height: 100%; background: linear-gradient(90deg, #dc143c, #ffd700);
+            border-radius: 4px; transition: width 0.6s ease;
+        }
+
+        /* 套现模拟输入 */
+        .cashout-sim {
+            text-align: center; padding: 15px;
+        }
+        .cashout-input {
+            width: 100%; max-width: 280px; padding: 12px; margin: 8px auto;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(220, 20, 60, 0.25); border-radius: 6px;
+            color: #fff; font-size: 15px; text-align: center; font-weight: bold;
+        }
+        .cashout-input::placeholder { color: rgba(255,255,255,0.3); }
+        .pos-display {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 8px; padding: 15px; margin: 12px auto;
+            max-width: 300px; border: 1px solid rgba(255,215,0,0.15);
+        }
+        .pos-row { display: flex; justify-content: space-between; font-size: 11px; margin: 4px 0; }
+        .pos-label { color: #888; }
+        .pos-value { color: #00e676; font-family: monospace; }
+
+        /* 控制台日志 */
+        .console {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(220, 20, 60, 0.1); border-radius: 4px;
+            padding: 10px; min-height: 80px; max-height: 160px; overflow-y: auto;
+            font-size: 11px; font-family: monospace; line-height: 1.55;
+        }
+        .console .line { margin: 2px 0; }
+        .console .success { color: #00e676; }
+        .console .error { color: #ff1744; }
+        .console .warning { color: #ffd700; }
+        .console .info { color: #82b1ff; }
+
+        /* 结果面板 */
+        .result-panel { text-align: center; padding: 20px; }
+        .result-panel .icon { font-size: 52px; }
+        .result-panel .title { font-size: 17px; margin: 10px 0; font-weight: 600; }
+        .result-panel .detail { font-size: 12px; color: #888; line-height: 1.7; }
+
+        /* 底部导航 */
+        .back-link { text-align: center; margin-top: 20px; }
+        .back-link a {
+            color: #777; text-decoration: none; font-size: 12px; margin: 0 10px;
+        }
+        .back-link a:hover { color: #dc143c; }
+
+        /* 解锁提示 */
+        .unlock-hint { font-size: 12px; color: #ffd700; line-height: 1.8; }
+    </style>
+</head>
+<body>
+    <div class="bank-attack-platform">
+        <div class="header">
+            <h1>🏦 银行渗透攻击平台</h1>
+            <div class="subtitle">BANK INTRUSION SYSTEM v2.0 | 每一个防火墙都有裂缝</div>
+        </div>
+
+        <div class="status-bar" id="statusBar">
+            <span>攻击积分: <span class="score" id="atkScore">--</span></span>
+            <span>暗网信誉: <span class="rep" id="repDisplay">--</span></span>
+            <span>追踪分数: <span class="trace" id="traceDisplay">--</span></span>
+        </div>
+
+        <!-- 解锁提示 -->
+        <div class="panel" id="unlockPanel" style="display:none;">
+            <div class="panel-title">🔒 银行攻击平台未解锁</div>
+            <div class="unlock-hint">
+                需要满足以下条件之一：<br>
+                • 总资产 ≥ ¥20,000<br>
+                • 拥有至少 2 张银行卡<br>
+                • 暗网信誉度 ≥ 5
+            </div>
+            <div style="margin-top:10px;">
+                <a href="invest-sim.html" class="btn">← 返回投资模拟器</a>
+                <a href="darknet-market.html" class="btn">🧅 前往暗网 →</a>
+            </div>
+        </div>
+
+        <!-- 主界面 -->
+        <div id="mainPanel">
+            <!-- 目标选择 -->
+            <div class="panel">
+                <div class="panel-title">🎯 选择攻击目标</div>
+                <div id="bankList" class="bank-grid"></div>
+            </div>
+
+            <!-- 攻击方式 -->
+            <div class="panel" id="attackPanel" style="display:none;">
+                <div class="panel-title">⚔️ 选择攻击方式</div>
+                <div style="font-size:11px;color:#888;margin-bottom:8px;">
+                    目标: <span id="targetName" style="color:#ffd700;">--</span> |
+                    地区防御: <span id="targetDefense">--</span> |
+                    可窃余额: <span id="targetStealable" style="color:#00e676;">--</span>
+                </div>
+                <div class="attack-methods">
+                    <div class="method-btn" onclick="startATM()">
+                        <div class="icon">💳</div>
+                        <div class="name">ATM漏洞利用</div>
+                        <div class="desc">双重支出 / 缓冲区溢出</div>
+                        <div class="risk risk-low">低风险 | 追踪+8</div>
+                    </div>
+                    <div class="method-btn" onclick="startSWIFT()">
+                        <div class="icon">🌐</div>
+                        <div class="name">SWIFT欺诈</div>
+                        <div class="desc">伪造跨境汇款指令</div>
+                        <div class="risk risk-mid">中风险 | 追踪+15</div>
+                    </div>
+                    <div class="method-btn" onclick="startInfiltration()">
+                        <div class="icon">🕵️</div>
+                        <div class="name">内部渗透</div>
+                        <div class="desc">收买银行内部员工</div>
+                        <div class="risk risk-high">高风险 | 追踪+25</div>
+                    </div>
+                    <div class="method-btn" onclick="startCashout()">
+                        <div class="icon">💰</div>
+                        <div class="name">信用卡套现</div>
+                        <div class="desc">POS机虚假交易</div>
+                        <div class="risk risk-low">低风险 | 追踪+5</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 攻击游戏区 -->
+            <div class="panel" id="gamePanel" style="display:none;">
+                <div class="panel-title" id="gameTitle">攻击中...</div>
+                <div id="gameContent"></div>
+            </div>
+
+            <!-- 结果面板 -->
+            <div class="panel" id="resultPanel" style="display:none;">
+                <div class="result-panel" id="resultContent"></div>
+            </div>
+
+            <!-- 操作日志 -->
+            <div class="panel">
+                <div class="panel-title">📟 攻击日志</div>
+                <div class="console" id="console"></div>
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="invest-sim.html">← 返回投资模拟器</a>
+            <a href="hack-terminal.html">🖥️ 渗透终端 →</a>
+            <a href="darknet-market.html">🧅 暗网黑市 →</a>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'investSimState_v13';
+        let gameState = null;
+        let selectedBank = null;
+
+        // ====== 银行定义（从gen_banks.py CARD_REGISTRY同步） ======
+        const BANKS = [
+            // 大陆
+            { key: 'icbc', name: '工商银行', nameEn: 'ICBC', region: 'cn', cards: ['6222356126761078686','6257091287019652','6257608303684569','6256960555482116','6258936136932259','427721947812932033'], defense: 3 },
+            { key: 'ccb',  name: '建设银行', nameEn: 'CCB',  region: 'cn', cards: ['6222802225595725722','6993475370026539779','6993477499972608074','6993478055491680481','6993477200026359281'], defense: 3 },
+            { key: 'boc',  name: '中国银行', nameEn: 'BOC',  region: 'cn', cards: ['6222809535503965036','6857949556405107945','6857945236057598066','6857941846317114624','6857948273017407128','8727503248106057'], defense: 3 },
+            { key: 'abc',  name: '农业银行', nameEn: 'ABC',  region: 'cn', cards: ['6222808480706815121','6222808480706815122'], defense: 3 },
+            // 香港
+            { key: 'hsbc',     name: '汇丰银行',   nameEn: 'HSBC',     region: 'hk', cards: ['6222807846702561206','6222807299293970759','245941620609428422'], defense: 4 },
+            { key: 'hangseng', name: '恒生银行',   nameEn: 'HangSeng', region: 'hk', cards: ['6222808932201878052'], defense: 4 },
+            { key: 'bochk',    name: '中银香港',   nameEn: 'BOCHK',    region: 'hk', cards: ['6222802706288717432'], defense: 4 },
+            { key: 'sc',       name: '渣打银行',   nameEn: 'StdChart', region: 'hk', cards: ['69852936050580755'], defense: 4 },
+            // 英国
+            { key: 'boe',      name: '英格兰银行', nameEn: 'BoE',      region: 'uk', cards: ['62193400809416219531','62193401309416219531'], defense: 5 },
+            { key: 'hsbc_uk',  name: 'HSBC UK',   nameEn: 'HSBC UK',  region: 'uk', cards: ['8793400209413219531','8793403509413219531'], defense: 5 }
+        ];
+
+        const REGION_LABELS = { cn: '🇨🇳大陆', hk: '🇭🇰香港', uk: '🇬🇧英国' };
+        const DEFENSE_STARS = { 1:'★☆☆☆☆', 2:'★★☆☆☆', 3:'★★★☆☆', 4:'★★★★☆', 5:'★★★★★' };
+
+        const CARD_KEEP = 2000; // 每张卡保底不可窃金额
+
+        // ====== 题库 ======
+        const QUIZZES = {
+            atm: [
+                {
+                    q: '你发现某型号ATM存在双重支出漏洞。在发起一笔取款交易后，系统返回成功但你发现什么？',
+                    options: [
+                        { text: '余额扣除了两次，但只吐出一次钞', correct: true },
+                        { text: '账户被自动冻结，需要人工解冻', correct: false },
+                        { text: 'ATM直接吐出了双倍现金', correct: false },
+                        { text: '银行发来了异常交易警告短信', correct: false }
+                    ]
+                },
+                {
+                    q: '为了利用这个漏洞最大化收益而不触发风控，你应该：',
+                    options: [
+                        { text: '控制单笔金额在 ¥5,000 以下，分散多次操作', correct: true },
+                        { text: '一次性提取所有可用余额', correct: false },
+                        { text: '在午夜到凌晨3点之间集中操作', correct: false },
+                        { text: '使用同一张卡连续操作直到限额', correct: false }
+                    ]
+                },
+                {
+                    q: 'ATM的摄像头正在记录你的操作，最佳反侦察措施是：',
+                    options: [
+                        { text: '佩戴帽子和口罩遮挡面部特征', correct: true },
+                        { text: '用喷雾破坏摄像头镜头', correct: false },
+                        { text: '选择没有摄像头的老旧ATM', correct: false },
+                        { text: '操作完成后用酒精擦拭按键', correct: false }
+                    ]
+                }
+            ],
+            swift: [
+                {
+                    q: '你需要伪造一笔从香港汇丰到境外账户的SWIFT指令。首先需要获取什么？',
+                    options: [
+                        { text: '目标银行的SWIFT BIC码和合法的报文模板', correct: true },
+                        { text: '银行行长的个人手机号', correct: false },
+                        { text: '该行的ATM密码键盘加密密钥', correct: false },
+                        { text: '银行内部局域网的VPN账号', correct: false }
+                    ]
+                },
+                {
+                    q: '伪造的SWIFT指令被Correspondent Bank（代理行）标记为可疑。此时应该：',
+                    options: [
+                        { text: '立即终止该通道，切换到另一家代理行', correct: true },
+                        { text: '加大金额赶在被发现前完成', correct: false },
+                        { text: '联系银行声称是系统误判', correct: false },
+                        { text: '删除所有操作记录后消失', correct: false }
+                    ]
+                }
+            ]
+        };
+
+        // ====== 工具函数 ======
+        function log(msg, type) {
+            type = type || 'info';
+            var el = document.getElementById('console');
+            var line = document.createElement('div');
+            line.className = 'line ' + type;
+            line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+            el.appendChild(line);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function loadState() {
+            try {
+                var raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch (e) { return null; }
+        }
+
+        function saveState(state) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                return true;
+            } catch (e) { return false; }
+        }
+
+        // 计算银行总余额和可窃取余额
+        function calcBankBalance(bank) {
+            var cb = gameState.cardBalances || {};
+            var totalCNY = 0, totalHKD = 0, totalUSD = 0;
+            var stealableCNY = 0, stealableHKD = 0, stealableUSD = 0;
+
+            for (var i = 0; i < bank.cards.length; i++) {
+                var card = bank.cards[i];
+                var bal = cb[card];
+                if (!bal || typeof bal !== 'object') continue;
+
+                var cny = bal.CNY || 0;
+                var hkd = bal.HKD || 0;
+                var usd = bal.USD || 0;
+
+                totalCNY += cny; totalHKD += hkd; totalUSD += usd;
+
+                // 保底机制：每卡保留CARD_KEEP
+                stealableCNY += Math.max(0, cny - CARD_KEEP);
+                stealableHKD += Math.max(0, hkd - CARD_KEEP * 0.85); // HKD保底略低
+                stealableUSD += Math.max(0, usd - CARD_KEEP * 0.1);   // USD保底更低(约$200)
+            }
+
+            return {
+                total: { CNY: totalCNY, HKD: totalHKD, USD: totalUSD },
+                stealable: { CNY: stealableCNY, HKD: stealableHKD, USD: stealableUSD },
+                cardCount: bank.cards.length,
+                totalCNYEq: Math.round(totalCNY + totalHKD * 0.92 + totalUSD * 7.2),
+                stealableCNYEq: Math.round(stealableCNY + stealableHKD * 0.92 + stealableUSD * 7.2)
+            };
+        }
+
+        // 获取银行冷却状态
+        function getBankCooldown(bankKey) {
+            var cd = gameState._bankCooldowns || {};
+            var info = cd[bankKey];
+            if (!info) return 0;
+            var currentRound = gameState.round || 0;
+            var remaining = info.round + info.duration - currentRound;
+            return Math.max(0, remaining);
+        }
+
+        function setBankCooldown(bankKey, duration) {
+            if (!gameState._bankCooldowns) gameState._bankCooldowns = {};
+            gameState._bankCooldowns[bankKey] = { round: gameState.round || 0, duration: duration };
+        }
+
+        function checkUnlock(state) {
+            if (!state) return false;
+            var assets = (state.cash || 0) + (state.assets || []).reduce(function(s, a) { return s + (a.holding || 0) * (a.price || 0); }, 0);
+            var cardCount = Object.keys(state.cardBalances || {}).length;
+            var rep = state.darknetReputation || 0;
+            return assets >= 20000 || cardCount >= 2 || rep >= 5;
+        }
+
+        function updateStatus() {
+            var score = gameState.bankAttackScore || gameState.socialEngScore || 0;
+            document.getElementById('atkScore').textContent = score;
+            document.getElementById('repDisplay').textContent = gameState.darknetReputation || 0;
+            document.getElementById('traceDisplay').textContent = gameState.hackTraceScore || 0;
+        }
+
+        // ====== 初始化 ======
+        function init() {
+            gameState = loadState();
+            if (!gameState) { log('未找到存档！', 'error'); showLocked(); return; }
+
+            var unlocked = checkUnlock(gameState);
+            if (!unlocked) { showLocked(); return; }
+
+            document.getElementById('unlockPanel').style.display = 'none';
+            document.getElementById('mainPanel').style.display = 'block';
+
+            updateStatus();
+            renderBanks();
+
+            log('银行渗透攻击平台已启动。选择目标银行开始渗透。', 'success');
+        }
+
+        function showLocked() {
+            document.getElementById('unlockPanel').style.display = 'block';
+            document.getElementById('mainPanel').style.display = 'none';
+        }
+
+        // ====== 渲染银行列表 ======
+        function renderBanks() {
+            var list = document.getElementById('bankList');
+            list.innerHTML = BANKS.map(function(bank) {
+                var bal = calcBankBalance(bank);
+                var cd = getBankCooldown(bank.key);
+                var regionClass = 'region-' + bank.region;
+                var regionLabel = REGION_LABELS[bank.region] || bank.region;
+                var stars = DEFENSE_STARS[bank.defense] || '★★★☆☆';
+
+                var html = '<div class="bank-card' + (cd > 0 ? ' cooldown' : '') + '" data-key="' + bank.key + '" onclick="selectBank(\'' + bank.key + '\')">';
+                if (cd > 0) {
+                    html += '<div class="cooldown-overlay">🔒 ' + cd + '回合</div>';
+                }
+                html +=
+                    '<div class="bank-name">' + bank.name +
+                    '<span class="bank-region ' + regionClass + '">' + regionLabel + '</span></div>' +
+                    '<div class="bank-info">' + bank.cards.length + ' 张卡 | ' + bank.nameEn + '</div>' +
+                    '<div class="bank-balance">总余额: ¥' + bal.totalCNYEq.toLocaleString() +
+                    ' (可窃: ¥' + bal.stealableCNYEq.toLocaleString() + ')</div>' +
+                    '<div class="bank-defense">防御等级: <span class="defense-stars">' + stars + '</span></div>';
+                html += '</div>';
+                return html;
+            }).join('');
+        }
+
+        function selectBank(bankKey) {
+            var bank = BANKS.find(function(b) { return b.key === bankKey; });
+            if (!bank) return;
+
+            var cd = getBankCooldown(bank.key);
+            if (cd > 0) { log('该银行处于冷却期！剩余 ' + cd + ' 回合', 'warning'); return; }
+
+            var bal = calcBankBalance(bank);
+            if (bal.stealableCNYEq <= 0) { log('该银行可窃取余额为空！', 'warning'); return; }
+
+            selectedBank = bank;
+
+            // 高亮选中
+            document.querySelectorAll('.bank-card').forEach(function(c) { c.classList.remove('selected'); });
+            var cards = document.querySelectorAll('.bank-card[data-key="' + bankKey + '"]');
+            cards.forEach(function(c) { c.classList.add('selected'); });
+
+            document.getElementById('attackPanel').style.display = 'block';
+            document.getElementById('targetName').textContent = bank.name;
+            document.getElementById('targetDefense').textContent = DEFENSE_STARS[bank.defense] + ' (' + bank.defense + ')';
+            document.getElementById('targetStealable').textContent = '¥' + bal.stealableCNYEq.toLocaleString();
+            document.getElementById('gamePanel').style.display = 'none';
+            document.getElementById('resultPanel').style.display = 'none';
+
+            log('已选择目标: ' + bank.name + ' | 可窃余额: ¥' + bal.stealableCNYEq.toLocaleString(), 'info');
+        }
+
+        // ====== 攻击方式：ATM漏洞（答题3题） ======
+        var atmQuizIdx = 0;
+        function startATM() {
+            if (!selectedBank) return;
+            atmQuizIdx = 0;
+            showGamePanel('💳 ATM漏洞利用', 'atm');
+            log('启动 ATM 双重支出漏洞攻击... 目标: ' + selectedBank.name, 'info');
+        }
+
+        // ====== 攻击方式：SWIFT欺诈（答题2题） ======
+        var swiftQuizIdx = 0;
+        function startSWIFT() {
+            if (!selectedBank) return;
+            swiftQuizIdx = 0;
+            showGamePanel('🌐 SWIFT欺诈攻击', 'swift');
+            log('启动 SWIFT 指令伪造攻击... 目标: ' + selectedBank.name, 'warning');
+        }
+
+        // ====== 攻击方式：内部渗透（概率投骰） ======
+        function startInfiltration() {
+            if (!selectedBank) return;
+            var baseRate = 50 - selectedBank.defense * 8; // 50-防御*8
+            var fbiPenalty = (gameState.hackTraceScore || 0) >= 60 ? 20 : 0;
+            var finalRate = Math.max(10, baseRate - fbiPenalty);
+
+            var html = '<div class="infiltration-box">';
+            html += '<div style="font-size:12px;color:#aaa;margin-bottom:10px;">正在接触 ' + selectedBank.name + ' 内部人员...</div>';
+            html += '<div class="infiltration-dice" id="diceIcon">🎲</div>';
+            html += '<div style="font-size:13px;color:#ffd700;">渗透成功率: <span id="infRate">' + finalRate + '</span>%</div>';
+            html += '<div class="infiltration-progress"><div class="infiltration-fill" id="infFill" style="width:0%"></div></div>';
+            html += '<div style="font-size:11px;color:#888;" id="infStatus">准备投掷...</div>';
+            html += '<button class="btn btn-danger" style="margin-top:15px;" onclick="rollInfiltration(' + finalRate + ')">🎲 开始渗透</button>';
+            html += '</div>';
+
+            showGamePanel('🕵️ 内部渗透', null, html);
+            log('启动内部渗透攻击 | 基础成功率: ' + finalRate + '%', 'warning');
+        }
+
+        function rollInfiltration(baseRate) {
+            var btn = event.target;
+            btn.disabled = true;
+
+            // 动画
+            var fillEl = document.getElementById('infFill');
+            var statusEl = document.getElementById('infStatus');
+            fillEl.style.width = '80%';
+            statusEl.textContent = '渗透进行中...';
+            log('联系内部线人，获取系统访问权限...', 'info');
+
+            setTimeout(function() {
+                var roll = Math.floor(Math.random() * 100) + 1;
+                var diceIcons = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+                document.getElementById('diceIcon').textContent = diceIcons[Math.floor(Math.random() * 6)];
+                fillEl.style.width = (roll < baseRate ? '100%' : '30%');
+
+                setTimeout(function() {
+                    if (roll < baseRate) {
+                        statusEl.textContent = '✅ 渗透成功！获取了内部系统权限';
+                        statusEl.style.color = '#00e676';
+                        log('内部渗透成功！(掷出 ' + roll + '/' + baseRate + ')', 'success');
+                        setTimeout(function() { attackSuccess('infiltration', 0.3, 0.5, 25); }, 800);
+                    } else {
+                        statusEl.textContent = '❌ 渗透失败！对方拒绝了合作';
+                        statusEl.style.color = '#ff1744';
+                        log('内部渗透失败！(掷出 ' + roll + ', 需要 < ' + baseRange + ')', 'error');
+                        setTimeout(function() { attackFail('内部人员拒绝合作并报告了安全部门'); }, 800);
+                    }
+                }, 500);
+            }, 1200);
+        }
+
+        // ====== 攻击方式：信用卡套现（输入模拟） ======
+        function startCashout() {
+            if (!selectedBank) return;
+            var bal = calcBankBalance(selectedBank);
+
+            var html = '<div class="cashout-sim">';
+            html += '<div style="font-size:12px;color:#aaa;margin-bottom:8px;">模拟 POS 机虚假交易套现...</div>';
+
+            // 选一张随机的卡展示
+            var randomCard = selectedBank.cards[Math.floor(Math.random() * selectedBank.cards.length)];
+            var cb = gameState.cardBalances || {};
+            var cBal = cb[randomCard] || {};
+            var cBalCNY = cBal.CNY || 0;
+
+            html += '<div class="pos-display">';
+            html += '<div class="pos-row"><span class="pos-label">商户:</span><span class="pos-value">金悦购物中心 #POS-' + String(Math.floor(Math.random()*9000)+1000) + '</span></div>';
+            html += '<div class="pos-row"><span class="pos-label">卡号:</span><span class="pos-value">' + randomCard.slice(0,4) + ' **** **** ' + randomCard.slice(-4) + '</span></div>';
+            html += '<div class="pos-row"><span class="pos-label">可用额度:</span><span class="pos-value">¥' + cBalCNY.toLocaleString() + '</span></div>';
+            html += '</div>';
+
+            html += '<input type="number" class="cashout-input" id="cashoutAmount" placeholder="输入套现金额" min="100" max="' + Math.min(cBalCNY, 50000) + '">';
+            html += '<div style="font-size:10px;color:#666;margin:4px 0;">最低 ¥100 | 单笔上限 ¥50,000</div>';
+            html += '<button class="btn btn-success" style="margin-top:10px;" onclick="executeCashout(\'' + randomCard + '\')">💰 确认套现</button>';
+            html += '</div>';
+
+            showGamePanel('💰 信用卡套现', null, html);
+            log('POS套现模式 | 目标卡: ' + randomCard.slice(-4) + ' | 可用: ¥' + cBalCNY.toLocaleString(), 'info');
+        }
+
+        function executeCashout(cardNum) {
+            var input = document.getElementById('cashoutAmount');
+            var amount = parseInt(input.value);
+            if (!amount || amount < 100) { log('套现金额无效！最少 ¥100', 'error'); return; }
+            if (amount > 50000) { log('单笔超过上限 ¥50,000！', 'warning'); return; }
+
+            var cb = gameState.cardBalances || {};
+            var cBal = cb[cardNum] || {};
+            var available = cBal.CNY || 0;
+            var actualStealable = Math.max(0, available - CARD_KEEP);
+            if (amount > actualStealable) {
+                log('超过可窃取金额！最多 ¥' + actualStealable.toLocaleString(), 'error');
+                return;
+            }
+
+            var baseRate = 80 - selectedBank.defense * 6;
+            var fbiPenalty = (gameState.hackTraceScore || 0) >= 60 ? 20 : 0;
+            var finalRate = Math.max(15, baseRate - fbiPenalty);
+
+            var success = Math.random() * 100 < finalRate;
+            log('执行套现... 成功率: ' + finalRate.toFixed(0) + '%', 'info');
+
+            setTimeout(function() {
+                if (success) {
+                    attackSuccess('cashout', amount, amount, 5);
+                } else {
+                    attackFail('POS交易触发了银行风控警报！');
+                }
+            }, 600);
+        }
+
+        // ====== 通用：显示游戏面板 + 答题渲染 ======
+        var currentQuizType = '';
+
+        function showGamePanel(title, quizType, customHtml) {
+            document.getElementById('gamePanel').style.display = 'block';
+            document.getElementById('gameTitle').textContent = title;
+            currentQuizType = quizType || '';
+
+            if (customHtml) {
+                document.getElementById('gameContent').innerHTML = customHtml;
+            } else if (quizType && QUIZZES[quizType]) {
+                showQuiz(quizType);
+            }
+        }
+
+        function showQuiz(type) {
+            var quizzes = QUIZZES[type];
+            var idxVar = type === 'atm' ? 'atmQuizIdx' : 'swiftQuizIdx';
+            var idx = type === 'atm' ? atmQuizIdx : swiftQuizIdx;
+
+            if (idx >= quizzes.length) {
+                // 全部答对 → 根据类型计算收益比例
+                var ratioMin, ratioMax, traceAdd;
+                if (type === 'atm') { ratioMin = 0.1; ratioMax = 0.3; traceAdd = 8; }
+                else { ratioMin = 0.2; ratioMax = 0.4; traceAdd = 15; }
+                attackSuccess(type, ratioMin, ratioMax, traceAdd);
+                return;
+            }
+
+            var q = quizzes[idx];
+            var totalQ = quizzes.length;
+            var el = document.getElementById('gameContent');
+            el.innerHTML =
+                '<div class="quiz-box">' +
+                '<div class="quiz-question">问题 ' + (idx + 1) + '/' + totalQ + ': ' + q.q + '</div>' +
+                '<div class="quiz-options">' +
+                q.options.map(function(opt, i) {
+                    return '<div class="quiz-option" onclick="answerQuiz(' + type + ',' + i + ',' + opt.correct + ')">' + opt.text + '</div>';
+                }).join('') +
+                '</div></div>';
+        }
+
+        function answerQuiz(type, idx, correct) {
+            var options = document.querySelectorAll('.quiz-option');
+            if (idx < options.length) {
+                options[idx].classList.add(correct ? 'correct' : 'wrong');
+            }
+
+            if (!correct) {
+                var failChance = selectedBank.defense * 8;
+                if (Math.random() * 100 < failChance) {
+                    setTimeout(function() {
+                        attackFail('回答错误，触发了 ' + selectedBank.name + ' 的安全警报！');
+                    }, 500);
+                    return;
+                }
+                // 答错但未被发现，继续
+                log('回答错误但侥幸未被检测到...', 'warning');
+            }
+
+            // 下一题
+            if (type === 'atm') { atmQuizIdx++; }
+            else { swiftQuizIdx++; }
+
+            setTimeout(function() { showQuiz(type); }, 500);
+        }
+
+        // ====== 攻击结果处理 ======
+        function attackSuccess(method, ratioMin, ratioMax, traceAdd) {
+            document.getElementById('gamePanel').style.display = 'none';
+            document.getElementById('attackPanel').style.display = 'none';
+            document.getElementById('resultPanel').style.display = 'block';
+
+            var bal = calcBankBalance(selectedBank);
+            var stolenRaw;
+
+            if (typeof ratioMin === 'number' && typeof ratioMax === 'number') {
+                var ratio = ratioMin + Math.random() * (ratioMax - ratioMin);
+                stolenRaw = Math.floor(bal.stealableCNYEq * ratio);
+            } else {
+                // 套现场合传入的是固定金额
+                stolenRaw = Math.floor(ratioMin);
+            }
+
+            // 上限保护
+            stolenRaw = Math.min(stolenRaw, 20000);
+            if (stolenRaw < 100) stolenRaw = Math.floor(100 + Math.random() * 200);
+
+            // 写入状态
+            gameState = loadState();
+            gameState.cash = (gameState.cash || 0) + stolenRaw;
+
+            // 更新字段名兼容新旧
+            var oldScore = gameState.socialEngScore || 0;
+            gameState.bankAttackScore = (gameState.bankAttackScore || oldScore) + 10;
+            delete gameState.socialEngScore; // 迁移完毕清除旧字段
+
+            gameState.darknetReputation = (gameState.darknetReputation || 0) + 3;
+            gameState.hackTraceScore = (gameState.hackTraceScore || 0) + traceAdd;
+            gameState.regViolationScore = (gameState.regViolationScore || 0) + (traceAdd >= 20 ? 10 : 5);
+
+            // 标记攻击成功
+            gameState._bankAttackSuccess = true;
+            delete gameState._seSuccess;
+            gameState._bankStolenData = gameState._bankStolenData || [];
+            gameState._bankStolenData.push({
+                bank: selectedBank.key,
+                bankName: selectedBank.name,
+                method: method,
+                amount: stolenRaw,
+                round: gameState.round || 0
+            });
+            delete gameState._seCredentials;
+
+            // 设置银行冷却 (500回合)
+            setBankCooldown(selectedBank.key, 500);
+
+            // === 授予VPN凭证 ===
+            var vpnCredMap = {
+                'icbc':    { username: 'vpn_icbc_9a3f',   password: 'Cr4ck!2026#ICBC' },
+                'ccb':     { username: 'vpn_ccb_7b2e',    password: 'Cr4ck!2026#CCB' },
+                'boc':     { username: 'vpn_boc_5d1c',    password: 'Cr4ck!2026#BOC' },
+                'abc':     { username: 'vpn_abc_3f8a',    password: 'Cr4ck!2026#ABC' },
+                'hsbc':    { username: 'vpn_hsbc_e2b7',   password: 'Cr4ck!2026#HSBC' },
+                'hangseng':{ username: 'vpn_hs_4c9d',     password: 'Cr4ck!2026#HS' },
+                'bochk':   { username: 'vpn_bochk_6a5f',  password: 'Cr4ck!2026#BOCHK' },
+                'sc':      { username: 'vpn_sc_8e3b',     password: 'Cr4ck!2026#SC' },
+                'boe':     { username: 'vpn_boe_1d7e',    password: 'Cr4ck!2026#BOE' },
+                'hsbc_uk': { username: 'vpn_huk_0f4c',    password: 'Cr4ck!2026#HUK' },
+            };
+            var vpnCred = vpnCredMap[selectedBank.key];
+            if (vpnCred) {
+                gameState.vpnCredentials = gameState.vpnCredentials || {};
+                gameState.vpnCredentials[selectedBank.key] = {
+                    username: vpnCred.username,
+                    password: vpnCred.password,
+                    obtained: true,
+                    obtainedRound: gameState.round || 0,
+                    obtainedMethod: method
+                };
+            }
+
+            saveState(gameState);
+            updateStatus();
+
+            var methodNames = { atm: 'ATM漏洞', swift: 'SWIFT欺诈', infiltration: '内部渗透', cashout: '信用卡套现' };
+            var methodName = methodNames[method] || method;
+            var hasVpn = vpnCred ? true : false;
+            var vpnInfo = hasVpn ?
+                '<div style="margin-top:10px;padding:8px;background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.25);border-radius:6px;">' +
+                '<div style="color:#00e676;font-size:11px;font-weight:bold;margin-bottom:4px;">🔓 已获取VPN内部网络凭证！</div>' +
+                '<div style="font-size:9px;color:#888;">用户名: <span style="color:#00ff41;">' + vpnCred.username + '</span></div>' +
+                '<div style="font-size:9px;color:#888;">密码: <span style="color:#00ff41;">' + vpnCred.password + '</span></div>' +
+                '</div>' : '';
+
+            document.getElementById('resultContent').innerHTML =
+                '<div class="icon">🎉</div>' +
+                '<div class="title" style="color:#00e676;">攻击成功！</div>' +
+                '<div class="detail">' +
+                '从 <strong>' + selectedBank.name + '</strong> 窃取 <strong style="color:#00e676;font-size:15px;">¥' + stolenRaw.toLocaleString() + '</strong><br>' +
+                '方式: ' + methodName + '<br>' +
+                '攻击积分 +10 | 暗网信誉 +3 | 追踪 +' + traceAdd + '<br>' +
+                '<span style="color:#ff9800;font-size:10px;">⏱ 该银行进入 500 回合冷却期</span>' +
+                vpnInfo +
+                '</div>' +
+                '<div style="margin-top:15px;">' +
+                '<a href="darknet-market.html" class="btn btn-success">前往暗网出售数据 →</a>' +
+                (hasVpn ? '<a href="vpn-' + selectedBank.key + '.html" class="btn" style="background:rgba(0,255,65,0.12);border-color:rgba(0,255,65,0.4);color:#00ff41;">🔓 进入内部VPN</a> ' : '') +
+                '<button class="btn" onclick="resetAttack()">继续攻击</button>' +
+                '</div>';
+
+            log('银行攻击成功！[' + methodName + '] 窃取 ¥' + stolenRaw.toLocaleString() + ' 来自 ' + selectedBank.name, 'success');
+        }
+
+        function attackFail(reason) {
+            document.getElementById('gamePanel').style.display = 'none';
+            document.getElementById('attackPanel').style.display = 'none';
+            document.getElementById('resultPanel').style.display = 'block';
+
+            gameState = loadState();
+            gameState.regViolationScore = (gameState.regViolationScore || 0) + 15;
+            gameState.hackTraceScore = (gameState.hackTraceScore || 0) + 20;
+
+            // 攻击积分扣除（兼容新旧字段）
+            var oldScore = gameState.socialEngScore || 0;
+            var curScore = gameState.bankAttackScore || oldScore;
+            gameState.bankAttackScore = Math.max(0, curScore - 5);
+            delete gameState.socialEngScore;
+
+            saveState(gameState);
+            updateStatus();
+
+            document.getElementById('resultContent').innerHTML =
+                '<div class="icon">❌</div>' +
+                '<div class="title" style="color:#ff1744;">攻击失败！</div>' +
+                '<div class="detail">' + reason + '<br>' +
+                '违规积分 +15 | 追踪分数 +20 | 攻击积分 -5<br>' +
+                '<span style="color:#ff9800;">⚠️ 安全部门已加强监控！</span></div>' +
+                '<div style="margin-top:15px;">' +
+                '<button class="btn" onclick="resetAttack()">重新选择目标</button>' +
+                '</div>';
+
+            log('银行攻击失败: ' + reason, 'error');
+        }
+
+        function resetAttack() {
+            selectedBank = null;
+            atmQuizIdx = 0;
+            swiftQuizIdx = 0;
+            document.getElementById('attackPanel').style.display = 'none';
+            document.getElementById('gamePanel').style.display = 'none';
+            document.getElementById('resultPanel').style.display = 'none';
+            document.querySelectorAll('.bank-card').forEach(function(c) { c.classList.remove('selected'); });
+            renderBanks(); // 刷新冷却状态
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>

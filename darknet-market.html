@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧅 暗网黑市交易平台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0d0221 0%, #1a0b2e 50%, #0d0221 100%);
+            color: #e0c3fc;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        /* Tor 风格洋葱路由动画背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(156, 39, 176, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(103, 58, 183, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(63, 81, 181, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            animation: pulse-bg 8s ease-in-out infinite;
+        }
+        @keyframes pulse-bg {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .market {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .header {
+            text-align: center;
+            padding: 25px;
+            border-bottom: 1px solid rgba(156, 39, 176, 0.3);
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 26px;
+            color: #ce93d8;
+            text-shadow: 0 0 15px rgba(206, 147, 216, 0.4);
+            letter-spacing: 3px;
+        }
+        .header .onion {
+            font-size: 36px;
+            margin-bottom: 8px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .header .subtitle {
+            font-size: 10px;
+            color: #7b1fa2;
+            font-family: monospace;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: rgba(156, 39, 176, 0.08);
+            border: 1px solid rgba(156, 39, 176, 0.25);
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        .status-bar .hot { color: #ff1744; font-weight: bold; }
+        .status-bar .cool { color: #00e676; }
+        .panel {
+            background: rgba(20, 0, 40, 0.6);
+            border: 1px solid rgba(156, 39, 176, 0.2);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(4px);
+        }
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ce93d8;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(156, 39, 176, 0.15);
+            padding-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn {
+            padding: 8px 16px;
+            background: rgba(156, 39, 176, 0.15);
+            border: 1px solid rgba(156, 39, 176, 0.4);
+            color: #ce93d8;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+            margin: 3px;
+        }
+        .btn:hover {
+            background: rgba(156, 39, 176, 0.3);
+            box-shadow: 0 0 10px rgba(156, 39, 176, 0.3);
+        }
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .btn-danger {
+            border-color: rgba(255, 23, 68, 0.4);
+            color: #ff1744;
+            background: rgba(255, 23, 68, 0.08);
+        }
+        .btn-danger:hover {
+            background: rgba(255, 23, 68, 0.2);
+        }
+        .item-card {
+            background: rgba(30, 0, 60, 0.4);
+            border: 1px solid rgba(156, 39, 176, 0.15);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        .item-card:hover {
+            border-color: rgba(156, 39, 176, 0.4);
+            box-shadow: 0 0 8px rgba(156, 39, 176, 0.15);
+        }
+        .item-info { flex: 1; }
+        .item-name {
+            font-size: 13px;
+            font-weight: bold;
+            color: #ce93d8;
+        }
+        .item-desc {
+            font-size: 11px;
+            color: #9575cd;
+            margin-top: 3px;
+        }
+        .item-risk {
+            font-size: 10px;
+            color: #ff9800;
+            margin-top: 2px;
+        }
+        .item-price {
+            text-align: right;
+            margin-right: 12px;
+        }
+        .price-btc {
+            font-size: 14px;
+            color: #ff9800;
+            font-weight: bold;
+        }
+        .price-eth {
+            font-size: 11px;
+            color: #9575cd;
+        }
+        .fbi-warning {
+            background: rgba(255, 23, 68, 0.08);
+            border: 1px solid rgba(255, 23, 68, 0.3);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+            text-align: center;
+            animation: flicker 2s infinite;
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .fbi-warning .title {
+            color: #ff1744;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .fbi-warning .desc {
+            color: #ff8a80;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        .rep-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+        .rep-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7b1fa2, #ce93d8);
+            transition: width 0.3s;
+        }
+        .console {
+            background: rgba(10, 0, 20, 0.8);
+            border: 1px solid rgba(156, 39, 176, 0.15);
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 80px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 11px;
+            font-family: monospace;
+            line-height: 1.5;
+        }
+        .console .line { margin: 2px 0; }
+        .console .success { color: #00e676; }
+        .console .error { color: #ff1744; }
+        .console .warning { color: #ff9800; }
+        .console .info { color: #ce93d8; }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .back-link a {
+            color: #9575cd;
+            text-decoration: none;
+            font-size: 12px;
+            margin: 0 10px;
+        }
+        .back-link a:hover { color: #ce93d8; }
+        .locked-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 0, 20, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 10;
+            border-radius: 6px;
+        }
+        .locked-overlay .icon { font-size: 48px; margin-bottom: 12px; }
+        .locked-overlay .text { color: #ff9800; font-size: 13px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="market">
+        <div class="header">
+            <div class="onion">🧅</div>
+            <h1>暗网黑市交易平台</h1>
+            <div class="subtitle">ONION MARKET v2.4.1 | 端到端加密 | 比特币支付</div>
+        </div>
+
+        <div class="status-bar" id="statusBar">
+            <span>暗网信誉: <span id="repDisplay">--</span></span>
+            <span>BTC: <span id="btcDisplay">--</span> | ETH: <span id="ethDisplay">--</span></span>
+            <span>FBI热度: <span id="fbiDisplay">--</span></span>
+        </div>
+
+        <!-- FBI 警告 -->
+        <div class="fbi-warning" id="fbiWarning" style="display:none;">
+            <div class="title">🚨 FBI 监控警告</div>
+            <div class="desc">你的交易活动已被标记！继续交易可能触发突袭。</div>
+        </div>
+
+        <!-- 解锁提示 -->
+        <div class="panel" id="unlockPanel" style="display:none;">
+            <div class="panel-title">🔒 暗网入口锁定</div>
+            <div style="font-size:12px;color:#ff9800;">
+                暗网黑市未解锁。需要满足以下条件之一：<br>
+                • 持有加密货币（BTC 或 ETH）> 0<br>
+                • 完成一次成功的银行攻击<br>
+                • 渗透终端破解母锁成功
+            </div>
+            <div style="margin-top:10px;">
+                <a href="hack-terminal.html" class="btn">🖥️ 前往渗透终端</a>
+                <a href="bank-attack.html" class="btn">🏦 前往银行攻击</a>
+            </div>
+        </div>
+
+        <!-- 主市场 -->
+        <div id="mainPanel">
+            <!-- 信誉面板 -->
+            <div class="panel">
+                <div class="panel-title">⭐ 暗网信誉度</div>
+                <div style="font-size:11px;color:#9575cd;margin-bottom:6px;">
+                    信誉度影响商品价格和可用性。通过成功交易和出售数据提升。
+                </div>
+                <div class="rep-bar"><div class="fill" id="repBar" style="width:0%"></div></div>
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:#888;">
+                    <span>新手</span><span>老手</span><span>大佬</span><span>传奇</span>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- 黑客工具 -->
+                <div class="panel">
+                    <div class="panel-title">🛠️ 黑客工具</div>
+                    <div id="toolsList"></div>
+                </div>
+
+                <!-- 漏洞利用 -->
+                <div class="panel">
+                    <div class="panel-title">💣 漏洞利用</div>
+                    <div id="exploitsList"></div>
+                </div>
+            </div>
+
+            <!-- 数据交易 -->
+            <div class="panel">
+                <div class="panel-title">💾 数据交易</div>
+                <div style="font-size:11px;color:#9575cd;margin-bottom:8px;">
+                    出售渗透终端获取的敏感数据，换取加密货币和信誉度。
+                </div>
+                <div id="dataTrade"></div>
+            </div>
+
+            <!-- 控制台 -->
+            <div class="panel">
+                <div class="panel-title">📟 交易日志</div>
+                <div class="console" id="console"></div>
+            </div>
+        </div>
+
+        <div class="back-link">
+            <a href="invest-sim.html">← 返回投资模拟器</a>
+            <a href="hack-terminal.html">🖥️ 渗透终端 →</a>
+            <a href="bank-attack.html">🏦 银行攻击 →</a>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'investSimState_v13';
+        let gameState = null;
+
+        // 商品定义
+        const PRODUCTS = {
+            tools: [
+                { id: 'workstation', name: '黑客工作站', desc: '解锁渗透终端高级功能', priceBTC: 0.5, priceETH: 8, risk: 5, minRep: 0 },
+                { id: 'advanced_cracker', name: '高级破解器', desc: '破解母锁时限延长至8秒', priceBTC: 0.3, priceETH: 5, risk: 8, minRep: 5 },
+                { id: 'firewall_bypass', name: '防火墙破解器', desc: '深度清理痕迹(-50追踪)', priceBTC: 0.4, priceETH: 6, risk: 10, minRep: 10 },
+            ],
+            exploits: [
+                { id: 'price_manipulator', name: '价格操纵器', desc: '临时修改某资产价格±20%', priceBTC: 0.8, priceETH: 12, risk: 15, minRep: 15 },
+                { id: 'cash_exploit', name: '无限现金漏洞', desc: '一次性注入 ¥100,000', priceBTC: 2.0, priceETH: 30, risk: 30, minRep: 30 },
+                { id: 'time_skip', name: '时间加速器', desc: '跳过1000回合', priceBTC: 1.5, priceETH: 22, risk: 20, minRep: 25 },
+            ]
+        };
+
+        function log(msg, type = 'info') {
+            const consoleEl = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = 'line ' + type;
+            line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function loadState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return null;
+                return JSON.parse(raw);
+            } catch (e) { return null; }
+        }
+
+        function saveState(state) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+                return true;
+            } catch (e) { return false; }
+        }
+
+        function checkUnlock(state) {
+            if (!state) return false;
+            const crypto = (state.assets || []).find(a => a.id === 'crypto');
+            const eth = (state.assets || []).find(a => a.id === 'eth');
+            const hasCrypto = ((crypto?.holding || 0) > 0) || ((eth?.holding || 0) > 0);
+            const hasSE = (state.bankAttackScore || state.socialEngScore || 0) > 0;
+            const hasCrack = state._hackCracked === true;
+            return hasCrypto || hasSE || hasCrack;
+        }
+
+        function init() {
+            gameState = loadState();
+            if (!gameState) {
+                log('未找到存档！', 'error');
+                showLocked();
+                return;
+            }
+
+            const unlocked = checkUnlock(gameState);
+            if (!unlocked) {
+                showLocked();
+                return;
+            }
+
+            document.getElementById('unlockPanel').style.display = 'none';
+            document.getElementById('mainPanel').style.display = 'block';
+
+            updateStatus();
+            renderProducts();
+            renderDataTrade();
+
+            // FBI 警告
+            if ((gameState.fbiHeat || 0) >= 50) {
+                document.getElementById('fbiWarning').style.display = 'block';
+            }
+
+            log('暗网黑市已连接。当前信誉度: ' + (gameState.darknetReputation || 0), 'success');
+        }
+
+        function showLocked() {
+            document.getElementById('unlockPanel').style.display = 'block';
+            document.getElementById('mainPanel').style.display = 'none';
+        }
+
+        function updateStatus() {
+            const rep = gameState.darknetReputation || 0;
+            const crypto = (gameState.assets || []).find(a => a.id === 'crypto');
+            const eth = (gameState.assets || []).find(a => a.id === 'eth');
+            const btcAmt = (crypto?.holding || 0).toFixed(4);
+            const ethAmt = (eth?.holding || 0).toFixed(4);
+            const fbi = gameState.fbiHeat || 0;
+
+            document.getElementById('repDisplay').textContent = rep;
+            document.getElementById('btcDisplay').textContent = btcAmt;
+            document.getElementById('ethDisplay').textContent = ethAmt;
+            document.getElementById('fbiDisplay').textContent = fbi;
+            document.getElementById('fbiDisplay').className = fbi >= 50 ? 'hot' : 'cool';
+
+            document.getElementById('repBar').style.width = Math.min(100, rep) + '%';
+        }
+
+        function renderProducts() {
+            const rep = gameState.darknetReputation || 0;
+
+            // 工具
+            const toolsEl = document.getElementById('toolsList');
+            toolsEl.innerHTML = PRODUCTS.tools.map(p => {
+                const canBuy = rep >= p.minRep;
+                const discount = Math.min(0.3, rep * 0.005);
+                const finalBTC = (p.priceBTC * (1 - discount)).toFixed(3);
+                const finalETH = Math.ceil(p.priceETH * (1 - discount));
+                return '<div class="item-card">' +
+                    '<div class="item-info">' +
+                    '<div class="item-name">' + p.name + (canBuy ? '' : ' 🔒') + '</div>' +
+                    '<div class="item-desc">' + p.desc + '</div>' +
+                    '<div class="item-risk">风险 +' + p.risk + ' FBI热度</div>' +
+                    '</div>' +
+                    '<div class="item-price">' +
+                    '<div class="price-btc">₿' + finalBTC + '</div>' +
+                    '<div class="price-eth">Ξ' + finalETH + '</div>' +
+                    '</div>' +
+                    '<button class="btn" ' + (canBuy ? '' : 'disabled') + ' onclick="buyProduct(\'' + p.id + '\', \'tools\')">购买</button>' +
+                    '</div>';
+            }).join('');
+
+            // 漏洞
+            const exploitsEl = document.getElementById('exploitsList');
+            exploitsEl.innerHTML = PRODUCTS.exploits.map(p => {
+                const canBuy = rep >= p.minRep;
+                const discount = Math.min(0.3, rep * 0.005);
+                const finalBTC = (p.priceBTC * (1 - discount)).toFixed(3);
+                const finalETH = Math.ceil(p.priceETH * (1 - discount));
+                return '<div class="item-card">' +
+                    '<div class="item-info">' +
+                    '<div class="item-name">' + p.name + (canBuy ? '' : ' 🔒') + '</div>' +
+                    '<div class="item-desc">' + p.desc + '</div>' +
+                    '<div class="item-risk">风险 +' + p.risk + ' FBI热度</div>' +
+                    '</div>' +
+                    '<div class="item-price">' +
+                    '<div class="price-btc">₿' + finalBTC + '</div>' +
+                    '<div class="price-eth">Ξ' + finalETH + '</div>' +
+                    '</div>' +
+                    '<button class="btn btn-danger" ' + (canBuy ? '' : 'disabled') + ' onclick="buyProduct(\'' + p.id + '\', \'exploits\')">购买</button>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function renderDataTrade() {
+            const el = document.getElementById('dataTrade');
+            // 检查是否有可出售的数据（通过银行攻击或渗透获取）
+            const hasData = gameState._hackCracked || (gameState.bankAttackScore || gameState.socialEngScore || 0) > 0;
+            if (!hasData) {
+                el.innerHTML = '<div style="font-size:11px;color:#888;">暂无数据可出售。先进行银行攻击或渗透入侵获取敏感数据。</div>';
+                return;
+            }
+            const dataValue = ((gameState.bankAttackScore || gameState.socialEngScore || 0) * 100) + (gameState._hackCracked ? 5000 : 0);
+            const btcReward = (dataValue / 50000).toFixed(4);
+            const repReward = Math.floor((gameState.bankAttackScore || gameState.socialEngScore || 0) / 5) + (gameState._hackCracked ? 5 : 0);
+
+            el.innerHTML = '<div class="item-card">' +
+                '<div class="item-info">' +
+                '<div class="item-name">📦 敏感数据包</div>' +
+                '<div class="item-desc">包含银行凭证、系统漏洞信息等</div>' +
+                '<div class="item-risk">价值: ¥' + dataValue.toLocaleString() + '</div>' +
+                '</div>' +
+                '<div class="item-price">' +
+                '<div class="price-btc">+₿' + btcReward + '</div>' +
+                '<div class="price-eth">+' + repReward + ' 信誉</div>' +
+                '</div>' +
+                '<button class="btn" onclick="sellData()">出售</button>' +
+                '</div>';
+
+            // 检查是否有银行数据库残骸（VPN清除指令执行后产生）
+            const purgedBanks = gameState._vpnDataPurged || {};
+            const purgedKeys = Object.keys(purgedBanks);
+            if (purgedKeys.length > 0) {
+                purgedKeys.forEach(key => {
+                    const bank = purgedBanks[key];
+                    const dataValue = 50000 + Math.floor(Math.random() * 50000); // ¥50,000 ~ ¥100,000
+                    const btcReward = (dataValue / 50000).toFixed(4);
+                    const repReward = 10;
+                    
+                    el.innerHTML += '<div class="item-card" style="border-color:#ff1744;">' +
+                        '<div class="item-info">' +
+                        '<div class="item-name" style="color:#ff1744;">💀 银行数据库残骸 — ' + (bank.bankName || key.toUpperCase()) + '</div>' +
+                        '<div class="item-desc">包含 ' + (bank.bankName || key) + ' 所有客户数据：账户余额、交易记录、身份信息</div>' +
+                        '<div class="item-risk">价值: ¥' + dataValue.toLocaleString() + ' | 清除回合: #' + (bank.round || '?') + '</div>' +
+                        '</div>' +
+                        '<div class="item-price">' +
+                        '<div class="price-btc">+₿' + btcReward + '</div>' +
+                        '<div class="price-eth">+' + repReward + ' 信誉</div>' +
+                        '</div>' +
+                        '<button class="btn" style="border-color:#ff1744;color:#ff1744;" onclick="sellBankData(\'' + key + '\')">出售</button>' +
+                        '</div>';
+                });
+            }
+        }
+
+        function buyProduct(productId, category) {
+            gameState = loadState();
+            const product = PRODUCTS[category].find(p => p.id === productId);
+            if (!product) return;
+
+            const crypto = (gameState.assets || []).find(a => a.id === 'crypto');
+            const eth = (gameState.assets || []).find(a => a.id === 'eth');
+            const discount = Math.min(0.3, (gameState.darknetReputation || 0) * 0.005);
+            const needBTC = product.priceBTC * (1 - discount);
+            const needETH = Math.ceil(product.priceETH * (1 - discount));
+
+            const hasBTC = (crypto?.holding || 0) >= needBTC;
+            const hasETH = (eth?.holding || 0) >= needETH;
+
+            if (!hasBTC && !hasETH) {
+                log('加密货币不足！需要 ₿' + needBTC.toFixed(3) + ' 或 Ξ' + needETH, 'error');
+                return;
+            }
+
+            // 扣款（优先 BTC）
+            if (hasBTC) {
+                crypto.holding -= needBTC;
+            } else {
+                eth.holding -= needETH;
+            }
+
+            // 添加到工具箱（去重：已有则累加使用次数）
+            gameState.hackTools = gameState.hackTools || [];
+            const existing = gameState.hackTools.find(t => t.id === product.id);
+            if (existing) {
+                existing.usesLeft += 3;
+                log('工具升级: ' + product.name + ' 使用次数 +' + 3, 'success');
+            } else {
+                gameState.hackTools.push({ id: product.id, name: product.name, usesLeft: 3 });
+            }
+
+            // 增加 FBI 热度和信誉
+            gameState.fbiHeat = (gameState.fbiHeat || 0) + product.risk;
+            gameState.darknetReputation = (gameState.darknetReputation || 0) + 2;
+
+            saveState(gameState);
+            updateStatus();
+            renderProducts();
+
+            log('购买成功: ' + product.name + ' | FBI热度 +' + product.risk, 'success');
+
+            // 检查 FBI 突袭
+            if (gameState.fbiHeat >= 80 && Math.random() < 0.15) {
+                triggerFBIRaid();
+            }
+        }
+
+        function sellData() {
+            gameState = loadState();
+            const dataValue = ((gameState.bankAttackScore || gameState.socialEngScore || 0) * 100) + (gameState._hackCracked ? 5000 : 0);
+            const btcReward = dataValue / 50000;
+            const repReward = Math.floor((gameState.bankAttackScore || gameState.socialEngScore || 0) / 5) + (gameState._hackCracked ? 5 : 0);
+
+            // 增加 BTC
+            const crypto = (gameState.assets || []).find(a => a.id === 'crypto');
+            if (crypto) crypto.holding += btcReward;
+
+            // 增加信誉
+            gameState.darknetReputation = (gameState.darknetReputation || 0) + repReward;
+
+            // 清除数据标记（全部清零，防止反复出售）
+            gameState._hackCracked = false;
+            gameState.bankAttackScore = 0;
+            gameState.socialEngScore = 0;
+            gameState._bankAttackSuccess = false;
+            gameState._bankStolenData = [];
+            gameState._seSuccess = false;
+            gameState._seCredentials = [];
+
+            // 增加 FBI 热度
+            gameState.fbiHeat = (gameState.fbiHeat || 0) + 10;
+
+            saveState(gameState);
+            updateStatus();
+            renderDataTrade();
+
+            log('数据出售成功！获得 ₿' + btcReward.toFixed(4) + ' | 信誉 +' + repReward, 'success');
+        }
+
+        function sellBankData(bankKey) {
+            gameState = loadState();
+            const purgedBanks = gameState._vpnDataPurged || {};
+            const bank = purgedBanks[bankKey];
+            if (!bank) {
+                log('银行数据不存在！', 'error');
+                return;
+            }
+
+            // 计算奖励
+            const dataValue = 50000 + Math.floor(Math.random() * 50000);
+            const btcReward = dataValue / 50000;
+            const repReward = 10;
+
+            // 增加 BTC
+            const crypto = (gameState.assets || []).find(a => a.id === 'crypto');
+            if (crypto) crypto.holding += btcReward;
+
+            // 增加信誉
+            gameState.darknetReputation = (gameState.darknetReputation || 0) + repReward;
+
+            // 移除该银行的数据标记（防止重复出售）
+            delete gameState._vpnDataPurged[bankKey];
+
+            // 增加 FBI 热度
+            gameState.fbiHeat = (gameState.fbiHeat || 0) + 15;
+
+            saveState(gameState);
+            updateStatus();
+            renderDataTrade();
+
+            log('银行数据库出售成功！' + (bank.bankName || bankKey) + ' → ₿' + btcReward.toFixed(4) + ' | 信誉 +' + repReward + ' | FBI热度 +15', 'success');
+
+            // 检查 FBI 突袭
+            if (gameState.fbiHeat >= 80 && Math.random() < 0.15) {
+                triggerFBIRaid();
+            }
+        }
+
+        function triggerFBIRaid() {
+            gameState = loadState();
+            gameState.hackTools = [];
+            const crypto = (gameState.assets || []).find(a => a.id === 'crypto');
+            const eth = (gameState.assets || []).find(a => a.id === 'eth');
+            if (crypto) crypto.holding = 0;
+            if (eth) eth.holding = 0;
+            gameState.fbiHeat = 0;
+            gameState.darknetReputation = Math.max(0, (gameState.darknetReputation || 0) - 10);
+            saveState(gameState);
+            updateStatus();
+            renderProducts();
+            log('🚔 FBI 突袭！所有暗网工具被没收，加密货币清零！', 'error');
+            // 非阻塞通知
+            showNotification('🚔 FBI 突袭！', '你的暗网交易被追踪到了！所有工具被没收，加密货币清零，信誉度 -10');
+        }
+
+        function showNotification(title, message) {
+            const div = document.createElement('div');
+            div.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(255,23,68,0.95);color:#fff;padding:16px 24px;border-radius:8px;z-index:9999;max-width:400px;text-align:center;box-shadow:0 4px 20px rgba(255,23,68,0.4);';
+            div.innerHTML = '<div style="font-size:16px;font-weight:bold;margin-bottom:6px;">' + title + '</div><div style="font-size:13px;">' + message + '</div>';
+            document.body.appendChild(div);
+            setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.5s'; setTimeout(() => div.remove(), 500); }, 5000);
+        }
+
+        init();
+    </script>
+</body>
+</html>

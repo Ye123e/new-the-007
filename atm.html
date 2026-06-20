@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATM 自动取款机</title>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background: #0a0a0a; color: #00ff41; font-family: 'Courier New', monospace;
+    min-height: 100vh; display: flex; justify-content: center; align-items: center;
+    overflow: hidden;
+}
+/* CRT扫描线效果 */
+body::after {
+    content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.03) 2px, rgba(0,255,65,0.03) 4px);
+    pointer-events: none; z-index: 999;
+}
+.atm-container {
+    width: 320px; background: #1a1a1a; border-radius: 16px;
+    border: 2px solid #333; box-shadow: 0 0 30px rgba(0,255,65,0.1), inset 0 0 20px rgba(0,0,0,0.5);
+    overflow: hidden;
+}
+.atm-header {
+    background: linear-gradient(180deg, #222, #1a1a1a);
+    padding: 10px 14px; display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid #333;
+}
+.atm-header-icon { font-size: 22px; }
+.atm-header-text { font-size: 12px; font-weight: bold; letter-spacing: 2px; }
+.atm-header-status { margin-left: auto; font-size: 9px; color: #555; }
+.atm-screen {
+    min-height: 240px; padding: 14px; position: relative;
+    background: #0d0d0d; border-bottom: 1px solid #222;
+    overflow-y: auto;
+}
+.atm-screen::-webkit-scrollbar { width: 4px; }
+.atm-screen::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+.atm-keypad {
+    padding: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+}
+.key-btn {
+    background: #2a2a2a; border: 1px solid #444; border-radius: 8px;
+    color: #00ff41; font-size: 18px; font-weight: bold;
+    padding: 10px; cursor: pointer; transition: all 0.1s;
+    font-family: 'Courier New', monospace; text-align: center;
+    user-select: none; -webkit-user-select: none;
+}
+.key-btn:hover { background: #333; border-color: #00ff41; }
+.key-btn:active { background: #00ff41; color: #000; transform: scale(0.95); }
+.key-btn.fn { font-size: 11px; }
+.key-btn.confirm { background: rgba(0,255,65,0.1); border-color: rgba(0,255,65,0.4); }
+.key-btn.cancel { background: rgba(255,82,82,0.1); border-color: rgba(255,82,82,0.4); color: #ff5252; }
+.key-btn.cancel:hover { background: rgba(255,82,82,0.2); }
+.atm-footer {
+    padding: 8px; text-align: center; font-size: 8px; color: #333;
+    border-top: 1px solid #222; background: #111;
+}
+/* 页面元素 */
+.page-title { font-size: 14px; text-align: center; margin-bottom: 12px; font-weight: bold; }
+.page-subtitle { font-size: 10px; color: #888; text-align: center; margin-bottom: 14px; }
+.bank-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.bank-option {
+    background: rgba(0,255,65,0.04); border: 1px solid #333; border-radius: 6px;
+    padding: 8px 2px; text-align: center; cursor: pointer;
+    font-size: 9px; color: #888; transition: all 0.15s;
+}
+.bank-option:hover { border-color: #00ff41; color: #00ff41; background: rgba(0,255,65,0.08); }
+.bank-option .bank-icon { font-size: 16px; display: block; margin-bottom: 2px; }
+.card-list { margin-top: 12px; }
+.card-option {
+    background: rgba(0,255,65,0.04); border: 1px solid #333; border-radius: 6px;
+    padding: 8px 10px; margin-bottom: 4px; cursor: pointer; transition: all 0.15s;
+}
+.card-option:hover { border-color: #00ff41; }
+.card-option.frozen { border-color: #ff5252; opacity: 0.5; pointer-events: none; }
+.card-option .card-num { font-size: 12px; color: #00ff41; }
+.card-option .card-holder { font-size: 10px; color: #666; margin-top: 1px; }
+.card-option .card-balance { font-size: 10px; color: #888; margin-top: 1px; }
+.card-option .frozen-tag { color: #ff5252; font-size: 9px; }
+.pin-display { text-align: center; margin: 14px 0; }
+.pin-dots { font-size: 22px; letter-spacing: 10px; color: #00ff41; }
+.pin-hint { font-size: 10px; color: #555; margin-top: 6px; }
+.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.menu-btn {
+    background: rgba(0,255,65,0.06); border: 1px solid #333; border-radius: 8px;
+    padding: 14px 8px; text-align: center; cursor: pointer; transition: all 0.15s;
+}
+.menu-btn:hover { border-color: #00ff41; background: rgba(0,255,65,0.12); }
+.menu-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+.menu-label { font-size: 11px; color: #ccc; }
+.balance-display { text-align: center; margin: 14px 0; }
+.balance-amount { font-size: 26px; font-weight: bold; color: #00ff41; }
+.balance-label { font-size: 10px; color: #666; margin-top: 4px; }
+.withdraw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.withdraw-btn {
+    background: rgba(0,255,65,0.06); border: 1px solid #333; border-radius: 6px;
+    padding: 10px; text-align: center; cursor: pointer; font-size: 14px;
+    font-weight: bold; color: #00ff41; transition: all 0.15s;
+    font-family: 'Courier New', monospace;
+}
+.withdraw-btn:hover { border-color: #00ff41; background: rgba(0,255,65,0.12); }
+.withdraw-btn.custom { font-size: 10px; color: #888; }
+.custom-input {
+    width: 100%; margin-top: 8px; background: #0d0d0d; border: 1px solid #333;
+    border-radius: 6px; padding: 8px 12px; color: #00ff41; font-size: 16px;
+    text-align: center; font-family: 'Courier New', monospace;
+}
+.custom-input:focus { outline: none; border-color: #00ff41; }
+.result-screen { text-align: center; padding: 14px 0; }
+.result-icon { font-size: 36px; margin-bottom: 8px; }
+.result-text { font-size: 12px; color: #ccc; line-height: 1.6; }
+.result-amount { font-size: 20px; font-weight: bold; color: #00ff41; margin: 10px 0; }
+.result-detail { font-size: 10px; color: #666; margin-top: 6px; }
+.lock-status {
+    font-size: 10px; color: #555; text-align: center; margin-top: 6px; padding: 6px;
+    background: rgba(0,255,65,0.02); border-radius: 4px;
+}
+.lock-status .lock-ok { color: #00ff41; }
+.lock-status .lock-bad { color: #ff5252; }
+.toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.9); border: 1px solid #333; border-radius: 8px;
+    padding: 10px 20px; font-size: 13px; z-index: 1000;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2s forwards;
+}
+.toast.error { border-color: #ff5252; color: #ff5252; }
+.toast.success { border-color: #00ff41; color: #00ff41; }
+@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+@keyframes toastOut { from { opacity:1; } to { opacity:0; } }
+
+/* 卡槽 */
+.card-slot-area {
+    position: relative; width: 100%; height: 28px;
+    display: flex; justify-content: center; align-items: center;
+}
+.card-slot {
+    width: 50px; height: 3px; background: #111; border-radius: 2px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.8), 0 0 0 1px #2a2a2a;
+    position: relative; z-index: 2;
+}
+.card-slot::before {
+    content: ''; position: absolute; top: -2px; left: -6px; right: -6px; bottom: -2px;
+    border: 1px solid #222; border-radius: 3px;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,0.5);
+}
+.card-slot-label {
+    position: absolute; bottom: -14px; font-size: 8px; color: #333; letter-spacing: 1px;
+}
+
+/* 插卡动画覆盖层 */
+.card-anim-overlay {
+    position: absolute; top: 20px; left: 0; right: 0; bottom: 0;
+    z-index: 50; pointer-events: none; overflow: hidden;
+}
+.card-anim-overlay.hidden { display: none; }
+.atm-card-visual {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: 130px; height: 78px; border-radius: 8px;
+    background: linear-gradient(135deg, #d4a843, #c4943a, #e8c468);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+    padding: 8px 10px; display: flex; flex-direction: column; justify-content: space-between;
+    font-family: 'Courier New', monospace;
+}
+.atm-card-chip {
+    width: 22px; height: 16px; border-radius: 3px;
+    background: linear-gradient(135deg, #c9a033, #a67c28);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+    position: relative;
+}
+.atm-card-chip::after {
+    content: ''; position: absolute; top: 4px; left: 4px; right: 4px; bottom: 4px;
+    border: 1px solid rgba(0,0,0,0.15);
+}
+.atm-card-number {
+    font-size: 9px; color: #1a1a1a; font-weight: bold; letter-spacing: 1px;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+}
+.atm-card-bank {
+    font-size: 8px; color: #333; font-weight: bold; letter-spacing: 1px;
+}
+.atm-card-holder {
+    font-size: 8px; color: #444; letter-spacing: 1px;
+}
+.atm-card-contactless {
+    position: absolute; top: 10px; right: 10px;
+    width: 14px; height: 14px; opacity: 0.4;
+}
+/* 插入动画 */
+@keyframes cardInsert {
+    0% { top: 220px; opacity: 1; }
+    70% { top: 10px; opacity: 1; }
+    100% { top: -80px; opacity: 0; }
+}
+/* 退卡动画 */
+@keyframes cardEject {
+    0% { top: -80px; opacity: 0; }
+    20% { top: 10px; opacity: 1; }
+    100% { top: 280px; opacity: 0; }
+}
+.card-inserting .atm-card-visual { animation: cardInsert 0.8s ease-in forwards; }
+.card-ejecting .atm-card-visual { animation: cardEject 0.7s ease-out forwards; }
+/* 插卡时屏幕闪烁 */
+@keyframes screenFlicker {
+    0% { opacity: 1; }
+    15% { opacity: 0.3; }
+    30% { opacity: 1; }
+    45% { opacity: 0.6; }
+    60% { opacity: 1; }
+}
+.atm-screen.inserting { animation: screenFlicker 0.5s ease; }
+</style>
+</head>
+<body>
+<div class="atm-container">
+    <div class="atm-header">
+        <span class="atm-header-icon">🏧</span>
+        <span class="atm-header-text">ATM</span>
+        <span class="atm-header-status">v1.0</span>
+    </div>
+    <div class="card-slot-area"><div class="card-slot"></div><span class="card-slot-label">INSERT CARD</span></div>
+    <div class="atm-screen" id="screen">
+        <div class="card-anim-overlay hidden" id="cardOverlay"></div>
+    </div>
+    <div class="atm-keypad" id="keypad"></div>
+    <div class="atm-footer">ATM 自动取款机 · 模拟系统</div>
+</div>
+<script>
+// 银行配置和卡号注册表
+const BANKS = {
+    icbc: { name: '工商银行', icon: '🏦', color: '#c41230' },
+    ccb: { name: '建设银行', icon: '🏗️', color: '#0066b3' },
+    boc: { name: '中国银行', icon: '🏛️', color: '#b71c1c' },
+    abc: { name: '农业银行', icon: '🌾', color: '#008c4f' },
+    hsbc: { name: '汇丰银行', icon: '🌏', color: '#db0011' },
+    hangseng: { name: '恒生银行', icon: '💎', color: '#007dba' },
+    bochk: { name: '中银香港', icon: '🇭🇰', color: '#b71c1c' },
+    sc: { name: '渣打银行', icon: '⚡', color: '#00a4e4' }
+};
+const CARD_REGISTRY = {"427721947812932033":{"bank":"icbc","holder":"冯程轩"},"6257091287019652":{"bank":"icbc","holder":"中国人民大学"},"6257608303684569":{"bank":"icbc","holder":"北京师范大学"},"6256960555482116":{"bank":"icbc","holder":"中国农业大学"},"6258936136932259":{"bank":"icbc","holder":"东莞市第二高级中学"},"6222356126761078686":{"bank":"icbc","holder":"复旦大学"},"6222802225595725722":{"bank":"ccb","holder":"上海交通大学"},"6993475370026539779":{"bank":"ccb","holder":"北京航空航天大学"},"6993477499972608074":{"bank":"ccb","holder":"中国科学院大学"},"6993478055491680481":{"bank":"ccb","holder":"北京科技大学"},"6993477200026359281":{"bank":"ccb","holder":"东莞市第七高级中学"},"6857949556405107945":{"bank":"boc","holder":"北京理工大学"},"6857945236057598066":{"bank":"boc","holder":"北京协和医学院"},"6857941846317114624":{"bank":"boc","holder":"北京交通大学"},"6857948273017407128":{"bank":"boc","holder":"东莞市第八高级中学(①)"},"8727503248106057":{"bank":"boc","holder":"东莞市第八高级中学(②)"},"6222809535503965036":{"bank":"boc","holder":"同济大学"},"6222808480706815121":{"bank":"abc","holder":"华东师范大学/上海财经大学"},"245941620609428422":{"bank":"hsbc","holder":"东莞市第二高级中学"},"6222807299293970759":{"bank":"hsbc","holder":"华东师范大学"},"6222807846702561206":{"bank":"hsbc","holder":"复旦大学"},"6222808932201878052":{"bank":"hangseng","holder":"同济大学"},"6222802706288717432":{"bank":"bochk","holder":"上海交通大学"},"69852936050580755":{"bank":"sc","holder":"东莞市第七高级中学"}};
+
+// 按银行分组
+const CARDS_BY_BANK = {};
+Object.entries(CARD_REGISTRY).forEach(([card, info]) => {
+    if (!CARDS_BY_BANK[info.bank]) CARDS_BY_BANK[info.bank] = [];
+    CARDS_BY_BANK[info.bank].push({ card, holder: info.holder });
+});
+
+// 状态
+let currentPage = 'selectBank';
+let selectedBank = null;
+let selectedCard = null;
+let pinInput = '';
+let customAmount = '';
+
+function getState() {
+    try { return JSON.parse(localStorage.getItem('investSimState_v13') || '{}'); }
+    catch(e) { return {}; }
+}
+function saveState(s) { localStorage.setItem('investSimState_v13', JSON.stringify(s)); }
+function getMasterToken() {
+    try { return JSON.parse(localStorage.getItem('invest_sim_master')); }
+    catch(e) { return null; }
+}
+function checkMasterLock() {
+    const token = getMasterToken();
+    if (!token) return false;
+    if (!token.ts || !token.status) return false;
+    if (Date.now() - token.ts > 3600000) return false;
+    return true;
+}
+
+function formatBalance(card) {
+    // 返回多币种余额显示字符串
+    const s = getState();
+    const b = s.cardBalances && s.cardBalances[card];
+    if (!b) return '¥0.00';
+    if (typeof b === 'number') return '¥' + b.toFixed(2);
+    let parts = [];
+    if (b.CNY) parts.push('¥' + b.CNY.toFixed(2));
+    if (b.HKD) parts.push('HK$' + b.HKD.toFixed(2));
+    if (b.USD) parts.push('$' + b.USD.toFixed(2));
+    return parts.length ? parts.join(' / ') : '¥0.00';
+}
+function getCardRegion(cardNo) {
+    const info = CARD_REGISTRY[cardNo];
+    if (!info) return 'mainland';
+    const bank = BANKS[info.bank];
+    return bank && bank.region === 'hongkong' ? 'hongkong' : 'mainland';
+}
+function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = 'toast ' + (type || '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
+
+function getCardBalance(card, currency) {
+    const s = getState();
+    if (!s.cardBalances) return 0;
+    const b = s.cardBalances[card];
+    if (!b) return 0;
+    if (typeof b === 'number') return currency === 'CNY' ? b : 0;
+    return b[currency || 'CNY'] || 0;
+}
+function getCardCredit(card) {
+    const s = getState();
+    return (s.cardCredits && s.cardCredits[card] != null) ? s.cardCredits[card] : 1.0;
+}
+function saveCardBalance(card, currency, amount) {
+    const s = getState();
+    if (!s.cardBalances) s.cardBalances = {};
+    if (!s.cardBalances[card] || typeof s.cardBalances[card] === 'number') {
+        const old = s.cardBalances[card] || 0;
+        s.cardBalances[card] = { CNY: typeof old === 'number' ? old : 0, HKD: 0, USD: 0 };
+    }
+    s.cardBalances[card][currency || 'CNY'] = amount;
+    saveState(s);
+}
+function saveCardCredit(card, credit) {
+    const s = getState();
+    if (!s.cardCredits) s.cardCredits = {};
+    s.cardCredits[card] = credit;
+    saveState(s);
+}
+
+function renderKeypad(keys) {
+    const kp = document.getElementById('keypad');
+    kp.innerHTML = '';
+    keys.forEach(k => {
+        const btn = document.createElement('button');
+        btn.className = 'key-btn' + (k.cls ? ' ' + k.cls : '');
+        btn.textContent = k.label;
+        btn.onclick = k.action;
+        kp.appendChild(btn);
+    });
+}
+
+function showPage(page) {
+    currentPage = page;
+    const screen = document.getElementById('screen');
+    const kp = document.getElementById('keypad');
+
+    switch(page) {
+        case 'selectBank':
+            renderSelectBank();
+            break;
+        case 'selectCard':
+            renderSelectCard();
+            break;
+        case 'enterPin':
+            pinInput = '';
+            renderEnterPin();
+            break;
+        case 'mainMenu':
+            renderMainMenu();
+            break;
+        case 'balance':
+            renderBalance();
+            break;
+        case 'withdraw':
+            renderWithdraw();
+            break;
+        case 'changePin':
+            renderChangePin();
+            break;
+        case 'result':
+            break;
+    }
+}
+
+function renderLockStatus() {
+    const ok = checkMasterLock();
+    return '<div class="lock-status">' +
+        (ok ? '<span class="lock-ok">🔒 母锁正常</span> · 系统已授权' :
+                  '<span class="lock-bad">⚠️ 母锁离线</span> · 请先打开投资模拟器') +
+        '</div>';
+}
+
+function renderSelectBank() {
+    const screen = document.getElementById('screen');
+    let html = '<div class="page-title">🏦 选择银行</div>';
+    html += '<div class="page-subtitle">请选择要操作的银行</div>';
+    html += renderLockStatus();
+    html += '<div class="bank-grid">';
+    Object.entries(BANKS).forEach(([key, bank]) => {
+        html += '<div class="bank-option" onclick="selectBank(\'' + key + '\')">' +
+            '<span class="bank-icon">' + bank.icon + '</span>' + bank.name + '</div>';
+    });
+    html += '</div>';
+    screen.innerHTML = html;
+    renderKeypad([
+        { label: '◀ 返回', cls: 'cancel', action: () => window.close() }
+    ]);
+}
+
+function selectBank(key) {
+    selectedBank = key;
+    const cards = CARDS_BY_BANK[key];
+    if (!cards || cards.length === 0) {
+        showToast('该银行暂无注册卡号', 'error');
+        return;
+    }
+    showPage('selectCard');
+}
+
+function renderSelectCard() {
+    const screen = document.getElementById('screen');
+    const bank = BANKS[selectedBank];
+    const cards = CARDS_BY_BANK[selectedBank] || [];
+    let html = '<div class="page-title">' + bank.icon + ' ' + bank.name + '</div>';
+    html += '<div class="page-subtitle">请选择银行卡</div>';
+    html += '<div class="card-list">';
+    cards.forEach(c => {
+        const bal = getCardBalance(c.card, 'CNY');
+        const balHkd = getCardBalance(c.card, 'HKD');
+        const balUsd = getCardBalance(c.card, 'USD');
+        const showBal = (bal > 0 ? '¥' + bal.toFixed(0) : '') + (balHkd > 0 ? ' HK$' + balHkd.toFixed(0) : '') + (balUsd > 0 ? ' $' + balUsd.toFixed(0) : '');
+        const credit = getCardCredit(c.card);
+        const frozen = credit <= 0.1;
+        const fmtCard = c.card.slice(0, 4) + ' **** ' + c.card.slice(-4);
+        html += '<div class="card-option' + (frozen ? ' frozen' : '') + '" onclick="' + (frozen ? '' : 'selectCard(\'' + c.card + '\')') + '">' +
+            '<div class="card-num">' + fmtCard + '</div>' +
+            '<div class="card-holder">' + c.holder + '</div>' +
+            '<div class="card-balance">' + (showBal || '¥0') + ' | 信用: ' + credit.toFixed(1) + (frozen ? ' [冻结]' : '') + '</div>' +
+            (frozen ? '<div class="frozen-tag">🔒 账户已冻结</div>' : '') +
+            '</div>';
+    });
+    html += '</div>';
+    screen.innerHTML = html;
+    renderKeypad([
+        { label: '◀ 返回', cls: 'cancel', action: () => showPage('selectBank') }
+    ]);
+}
+
+function selectCard(card) {
+    selectedCard = card;
+    playCardInsert(card, () => showPage('enterPin'));
+}
+
+function renderEnterPin() {
+    const screen = document.getElementById('screen');
+    const info = CARD_REGISTRY[selectedCard];
+    const bank = BANKS[info.bank];
+    const fmtCard = selectedCard.slice(0, 4) + ' **** ' + selectedCard.slice(-4);
+    let html = '<div class="page-title">🔑 输入密码</div>';
+    html += '<div class="page-subtitle">' + bank.name + ' · ' + fmtCard + '</div>';
+    html += '<div class="page-subtitle">' + info.holder + '</div>';
+    html += '<div class="pin-display"><div class="pin-dots" id="pinDots"></div>';
+    html += '<div class="pin-hint">请输入6位密码</div></div>';
+    screen.innerHTML = html;
+    updatePinDots();
+    renderKeypad([
+        { label: '1', action: () => addPinDigit('1') },
+        { label: '2', action: () => addPinDigit('2') },
+        { label: '3', action: () => addPinDigit('3') },
+        { label: '4', action: () => addPinDigit('4') },
+        { label: '5', action: () => addPinDigit('5') },
+        { label: '6', action: () => addPinDigit('6') },
+        { label: '7', action: () => addPinDigit('7') },
+        { label: '8', action: () => addPinDigit('8') },
+        { label: '9', action: () => addPinDigit('9') },
+        { label: '◀ 退卡', cls: 'cancel', action: () => ejectCard() },
+        { label: '0', action: () => addPinDigit('0') },
+        { label: '确认', cls: 'confirm', action: () => verifyPin() }
+    ]);
+}
+
+function addPinDigit(d) {
+    if (pinInput.length >= 6) return;
+    pinInput += d;
+    updatePinDots();
+}
+
+function removePinDigit() {
+    pinInput = pinInput.slice(0, -1);
+    updatePinDots();
+}
+
+function updatePinDots() {
+    const el = document.getElementById('pinDots');
+    if (!el) return;
+    let dots = '';
+    for (let i = 0; i < 6; i++) {
+        dots += i < pinInput.length ? '● ' : '○ ';
+    }
+    el.textContent = dots.trim();
+}
+
+function verifyPin() {
+    const correctPin = selectedCard.slice(-6);
+    if (pinInput === correctPin) {
+        showPage('mainMenu');
+    } else {
+        showToast('密码错误，请重新输入', 'error');
+        pinInput = '';
+        updatePinDots();
+    }
+}
+
+function renderMainMenu() {
+    const screen = document.getElementById('screen');
+    const info = CARD_REGISTRY[selectedCard];
+    const bank = BANKS[info.bank];
+    const bal = getCardBalance(selectedCard);
+    const fmtCard = selectedCard.slice(0, 4) + ' **** ' + selectedCard.slice(-4);
+    let html = '<div class="page-title">欢迎，' + info.holder + '</div>';
+    html += '<div class="page-subtitle">' + bank.icon + ' ' + bank.name + ' · ' + fmtCard + '</div>';
+    html += '<div class="balance-display">';
+    html += '<div class="balance-amount">' + formatBalance(selectedCard) + '</div>';
+    html += '<div class="balance-label">可用余额</div></div>';
+    html += '<div class="menu-grid">';
+    html += '<div class="menu-btn" onclick="showPage(\'balance\')"><span class="menu-icon">💰</span><span class="menu-label">查询余额</span></div>';
+    html += '<div class="menu-btn" onclick="showPage(\'withdraw\')"><span class="menu-icon">💵</span><span class="menu-label">取款</span></div>';
+    html += '<div class="menu-btn" onclick="showPage(\'changePin\')"><span class="menu-icon">🔑</span><span class="menu-label">修改密码</span></div>';
+    html += '<div class="menu-btn" onclick="ejectCard()"><span class="menu-icon">🟥</span><span class="menu-label">退卡</span></div>';
+    html += '</div>';
+    screen.innerHTML = html;
+    renderKeypad([
+        { label: '◀ 返回', cls: 'cancel', action: () => showPage('selectCard') }
+    ]);
+}
+
+function renderBalance() {
+    const screen = document.getElementById('screen');
+    const info = CARD_REGISTRY[selectedCard];
+    const bank = BANKS[info.bank];
+    const bal = getCardBalance(selectedCard);
+    const credit = getCardCredit(selectedCard);
+    const frozen = credit <= 0.1;
+    const fmtCard = selectedCard.slice(0, 4) + ' **** ' + selectedCard.slice(-4);
+    let html = '<div class="page-title">💰 余额查询</div>';
+    html += '<div class="page-subtitle">' + bank.icon + ' ' + bank.name + ' · ' + fmtCard + '</div>';
+    html += '<div class="balance-display">';
+    html += '<div class="balance-amount">' + formatBalance(selectedCard) + '</div>';
+    html += '<div class="balance-label">可用余额</div></div>';
+    html += '<div style="text-align:center;margin-top:16px;">';
+    html += '<div style="font-size:12px;color:#888;">持卡人: ' + info.holder + '</div>';
+    html += '<div style="font-size:12px;color:' + (frozen ? '#ff5252' : credit >= 0.8 ? '#00ff41' : '#ffd740') + ';">信用分: ' + credit.toFixed(1) + (frozen ? ' [冻结]' : '') + '</div>';
+    html += '</div>';
+    screen.innerHTML = html;
+    renderKeypad([
+        { label: '◀ 返回', cls: 'cancel', action: () => showPage('mainMenu') }
+    ]);
+}
+
+function renderWithdraw() {
+    const screen = document.getElementById('screen');
+    const bal = getCardBalance(selectedCard);
+    let html = '<div class="page-title">💵 取款</div>';
+    html += '<div class="page-subtitle">当前余额: ¥' + bal.toFixed(2) + '（保底 ¥2,000）</div>';
+    html += '<div class="withdraw-grid">';
+    const amounts = [100, 500, 1000, 2000, 5000, 10000];
+    amounts.forEach(a => {
+        const disabled = bal - a < 2000;
+        html += '<div class="withdraw-btn" onclick="' + (disabled ? '' : 'doWithdraw(' + a + ')') + '" style="' + (disabled ? 'opacity:0.3;pointer-events:none;' : '') + '">¥' + a.toLocaleString() + '</div>';
+    });
+    html += '</div>';
+    html += '<div style="text-align:center;margin-top:12px;font-size:11px;color:#666;">自定义金额</div>';
+    html += '<input class="custom-input" id="customAmountInput" type="number" placeholder="输入金额" onfocus="this.select()">';
+    html += '<div style="text-align:center;margin-top:8px;"><button class="key-btn confirm fn" style="display:inline-block;padding:8px 30px;" onclick="doWithdrawCustom()">确认取款</button></div>';
+    screen.innerHTML = html;
+    renderKeypad([
+        { label: '◀ 返回', cls: 'cancel', action: () => showPage('mainMenu') }
+    ]);
+}
+
+function doWithdraw(amount) {
+    const bal = getCardBalance(selectedCard);
+    if (!checkMasterLock()) {
+        showToast('母锁离线，交易被拒绝', 'error');
+        return;
+    }
+    const credit = getCardCredit(selectedCard);
+    if (credit <= 0.1) {
+        showToast('账户已冻结，无法取款', 'error');
+        return;
+    }
+    if (bal - amount < 2000) {
+        showToast('余额不足，保底 ¥2,000', 'error');
+        return;
+    }
+    saveCardBalance(selectedCard, 'CNY', bal - amount);
+    // 信用分检查
+    const newBal = bal - amount;
+    if (newBal < 1000) {
+        const oldCredit = credit;
+        const newCredit = Math.max(0.1, Math.round(oldCredit / 2 * 10) / 10);
+        saveCardCredit(selectedCard, newCredit);
+    }
+    // 生成支票并存入网银
+    const cardInfo = CARD_REGISTRY[selectedCard];
+    const bankInfo = BANKS[cardInfo ? cardInfo.bank : selectedBank];
+    const cheque = {
+        id: Date.now(),
+        amount: amount,
+        cardNo: selectedCard,
+        bankName: bankInfo ? bankInfo.name : '未知银行',
+        holder: cardInfo ? cardInfo.holder : '未知',
+        atmBank: bankInfo ? bankInfo.name : '未知银行',
+        date: Date.now(),
+        status: 'pending'
+    };
+    const s = getState();
+    const cheques = s.cheques || [];
+    cheques.unshift(cheque);
+    if (cheques.length > 100) cheques.length = 100;
+    s.cheques = cheques;
+    saveState(s);
+    _lastChequeId = cheque.id;
+    showResult('success', '取款成功', '¥' + amount.toLocaleString(), '请确认已取出现金 · 支票已打印，可至网银兑换');
+}
+
+function doWithdrawCustom() {
+    const input = document.getElementById('customAmountInput');
+    if (!input) return;
+    const amount = parseFloat(input.value);
+    if (isNaN(amount) || amount <= 0) {
+        showToast('请输入有效金额', 'error');
+        return;
+    }
+    if (amount > 50000) {
+        showToast('单次取款上限 ¥50,000', 'error');
+        return;
+    }
+    doWithdraw(amount);
+}
+
+function renderChangePin() {
+    const screen = document.getElementById('screen');
+    let html = '<div class="page-title">🔑 修改密码</div>';
+    html += '<div class="page-subtitle">输入新密码（6位数字）</div>';
+    html += '<div class="pin-display"><div class="pin-dots" id="pinDots"></div></div>';
+    screen.innerHTML = html;
+    pinInput = '';
+    updatePinDots();
+    renderKeypad([
+        { label: '1', action: () => addPinDigit('1') },
+        { label: '2', action: () => addPinDigit('2') },
+        { label: '3', action: () => addPinDigit('3') },
+        { label: '4', action: () => addPinDigit('4') },
+        { label: '5', action: () => addPinDigit('5') },
+        { label: '6', action: () => addPinDigit('6') },
+        { label: '7', action: () => addPinDigit('7') },
+        { label: '8', action: () => addPinDigit('8') },
+        { label: '9', action: () => addPinDigit('9') },
+        { label: '◀ 取消', cls: 'cancel', action: () => showPage('mainMenu') },
+        { label: '0', action: () => addPinDigit('0') },
+        { label: '确认', cls: 'confirm', action: () => confirmChangePin() }
+    ]);
+}
+
+function confirmChangePin() {
+    if (pinInput.length !== 6) {
+        showToast('请输入完整的6位密码', 'error');
+        return;
+    }
+    // 模拟密码修改（实际不存储，因为密码=卡号后6位是固定的模拟规则）
+    showToast('密码修改成功（模拟）', 'success');
+    showPage('mainMenu');
+}
+
+function showResult(type, title, amount, detail) {
+    const screen = document.getElementById('screen');
+    let html = '<div class="result-screen">';
+    html += '<div class="result-icon">' + (type === 'success' ? '✅' : '❌') + '</div>';
+    html += '<div class="result-text">' + title + '</div>';
+    if (amount) html += '<div class="result-amount">' + amount + '</div>';
+    html += '<div class="result-detail">' + detail + '</div>';
+    html += '<div class="result-detail">剩余余额: ¥' + getCardBalance(selectedCard).toFixed(2) + '</div>';
+    html += '<div class="result-detail">信用分: ' + getCardCredit(selectedCard).toFixed(1) + '</div>';
+    if (type === 'success' && amount && amount.startsWith('¥')) {
+        html += '<div style="margin-top:8px;"><button onclick="downloadLastChequePDF()" style="padding:8px 16px;border:1px solid #00ff41;background:rgba(0,255,65,0.1);color:#00ff41;border-radius:4px;cursor:pointer;font-family:inherit;font-size:12px;">📄 下载支票PDF</button></div>';
+    }
+    html += '</div>';
+    screen.innerHTML = html;
+    renderKeypad([
+        { label: '◀ 返回菜单', cls: '', action: () => showPage('mainMenu') },
+        { label: '退卡', cls: 'cancel', action: () => ejectCard() }
+    ]);
+}
+
+function getCardOverlay() {
+    let overlay = document.getElementById('cardOverlay');
+    if (!overlay) {
+        const screen = document.getElementById('screen');
+        overlay = document.createElement('div');
+        overlay.id = 'cardOverlay';
+        overlay.className = 'card-anim-overlay hidden';
+        screen.appendChild(overlay);
+    }
+    return overlay;
+}
+
+function playCardInsert(card, callback) {
+    const overlay = getCardOverlay();
+    const screen = document.getElementById('screen');
+    const info = CARD_REGISTRY[card];
+    const bank = BANKS[info.bank];
+    const fmtCard = card.slice(0, 4) + ' ' + card.slice(4, 8) + ' ' + card.slice(8, 12) + ' ' + card.slice(12);
+    overlay.className = 'card-anim-overlay card-inserting';
+    overlay.innerHTML =
+        '<div class="atm-card-visual">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+        '<div class="atm-card-chip"></div>' +
+        '</div>' +
+        '<div class="atm-card-number">' + fmtCard + '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-end;">' +
+        '<div>' +
+        '<div class="atm-card-bank">' + bank.name + '</div>' +
+        '<div class="atm-card-holder">' + info.holder + '</div>' +
+        '</div>' +
+        '<svg class="atm-card-contactless" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="M8.5 16.5a5 5 0 017 0"/><path d="M5.5 13.5a9 9 0 0113 0"/><path d="M2.5 10.5a13 13 0 0119 0"/></svg>' +
+        '</div>' +
+        '</div>';
+    screen.classList.add('inserting');
+    setTimeout(() => { screen.classList.remove('inserting'); }, 500);
+    setTimeout(() => {
+        overlay.className = 'card-anim-overlay hidden';
+        if (callback) callback();
+    }, 850);
+}
+
+function playCardEject(card, callback) {
+    const overlay = getCardOverlay();
+    const screen = document.getElementById('screen');
+    if (!card) { if (callback) callback(); return; }
+    const info = CARD_REGISTRY[card];
+    const bank = BANKS[info.bank];
+    const fmtCard = card.slice(0, 4) + ' ' + card.slice(4, 8) + ' ' + card.slice(8, 12) + ' ' + card.slice(12);
+    overlay.className = 'card-anim-overlay card-ejecting';
+    overlay.innerHTML =
+        '<div class="atm-card-visual">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+        '<div class="atm-card-chip"></div>' +
+        '</div>' +
+        '<div class="atm-card-number">' + fmtCard + '</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-end;">' +
+        '<div>' +
+        '<div class="atm-card-bank">' + bank.name + '</div>' +
+        '<div class="atm-card-holder">' + info.holder + '</div>' +
+        '</div>' +
+        '<svg class="atm-card-contactless" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2"><path d="M8.5 16.5a5 5 0 017 0"/><path d="M5.5 13.5a9 9 0 0113 0"/><path d="M2.5 10.5a13 13 0 0119 0"/></svg>' +
+        '</div>' +
+        '</div>';
+    setTimeout(() => {
+        overlay.className = 'card-anim-overlay hidden';
+        if (callback) callback();
+    }, 750);
+}
+
+function ejectCard() {
+    playCardEject(selectedCard, () => {
+        selectedCard = null;
+        selectedBank = null;
+        pinInput = '';
+        showPage('selectBank');
+        showToast('已退卡，感谢使用', 'success');
+    });
+}
+
+// 初始化
+showPage('selectBank');
+
+// ---- Cheque PDF Functions ----
+function numToChinese(n){
+    var digits=["零","壹","贰","叁","肆","伍","陆","柒","捌","玖"];
+    var units=["","拾","佰","仟"];
+    var bigUnits=["","万","亿"];
+    if(n===0)return"零元整";
+    var intPart=Math.floor(n);
+    var decPart=Math.round((n-intPart)*100);
+    var jiao=Math.floor(decPart/10);
+    var fen=decPart%10;
+    var s="";
+    if(intPart>0){
+        var str=String(intPart);
+        var len=str.length;
+        var zeroFlag=false;
+        for(var i=0;i<len;i++){
+            var d=parseInt(str[i]);
+            var pos=len-1-i;
+            var unitIdx=pos%4;
+            var bigIdx=Math.floor(pos/4);
+            if(d===0){zeroFlag=true;}
+            else{
+                if(zeroFlag){s+="零";zeroFlag=false;}
+                s+=digits[d]+units[unitIdx];
+            }
+            if(unitIdx===0&&bigIdx>0){
+                if(!zeroFlag)s+=bigUnits[bigIdx];
+                if(d===0)zeroFlag=false;
+            }
+        }
+        s+="元";
+    }
+    if(jiao>0){s+=digits[jiao]+"角";}
+    else if(fen>0&&intPart>0){s+="零";}
+    if(fen>0){s+=digits[fen]+"分";}
+    else if(jiao===0&&fen===0){s+="整";}
+    return s;
+}
+
+function fillChequePreview(c){
+    var d=new Date(c.date);
+    var ds=d.getFullYear()+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+" "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+    document.getElementById("cp-bank").textContent=c.bankName+" 支票";
+    document.getElementById("cp-no").textContent=String(c.id).slice(-8);
+    document.getElementById("cp-holder").textContent=c.holder||"";
+    document.getElementById("cp-amount").textContent="\u00a5"+c.amount.toFixed(2);
+    document.getElementById("cp-cn").textContent=numToChinese(c.amount);
+    document.getElementById("cp-atm").textContent=c.atmBank||c.bankName||"";
+    document.getElementById("cp-card").textContent=c.cardNo||"";
+    document.getElementById("cp-date").textContent=ds;
+    var st=c.status==="cashed";
+    document.getElementById("cp-status").textContent="[ "+(st?"已兑换":"待兑换")+" ]";
+    document.getElementById("cp-status").style.color=st?"#888":"#c90";
+    document.getElementById("cp-cancel").style.display=st?"block":"none";
+}
+
+function atmChequeToPDF(c){
+    return new Promise(function(resolve,reject){
+        if(!window.html2canvas){reject(new Error("html2canvas not loaded"));return;}
+        fillChequePreview(c);
+        var el=document.getElementById("cheque-preview");
+        html2canvas(el,{scale:2,backgroundColor:"#ffffff",useCORS:true}).then(function(canvas){
+            var imgData=canvas.toDataURL("image/png");
+            var jsPDF=window.jspdf.jsPDF;
+            var doc=new jsPDF({orientation:"landscape",unit:"mm",format:[200,120]});
+            doc.addImage(imgData,"PNG",0,0,200,120);
+            resolve(doc);
+        }).catch(function(e){reject(e);});
+    });
+}
+
+var _lastChequeId = null;
+
+function downloadLastChequePDF(){
+    if(!window.jspdf||!window.jspdf.jsPDF){showToast('PDF库加载中，请刷新页面重试','error');return;}
+    if(!window.html2canvas){showToast('截图库加载中，请刷新页面重试','error');return;}
+    if(!_lastChequeId){showToast('No cheque to download','error');return;}
+    var s=getState();
+    var cheques=s.cheques||[];
+    var c=null;
+    for(var i=0;i<cheques.length;i++){if(cheques[i].id===_lastChequeId){c=cheques[i];break;}}
+    if(!c){showToast('Cheque not found','error');return;}
+    atmChequeToPDF(c).then(function(doc){
+        doc.save("cheque_"+String(c.id).slice(-8)+".pdf");
+        showToast('PDF下载成功','success');
+    }).catch(function(e){showToast('PDF生成失败: '+e.message,'error');});
+}
+</script>
+<div id="cheque-preview" style="position:fixed;left:-9999px;top:0;width:800px;height:480px;background:#fff;border:3px solid #b71c1c;font-family:'Microsoft YaHei','PingFang SC',sans-serif;box-sizing:border-box;overflow:hidden;">
+  <div style="background:#b71c1c;color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;">
+    <span id="cp-bank" style="font-size:24px;font-weight:bold;">银行名称 支票</span>
+    <span style="font-size:13px;">No. <span id="cp-no">00000000</span></span>
+  </div>
+  <div style="padding:24px 28px;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;border-bottom:1px solid #ddd;padding-bottom:10px;">
+      <span style="font-size:15px;color:#333;padding-top:4px;">收款人 / <span id="cp-holder" style="font-weight:bold;"></span></span>
+      <div style="text-align:right;">
+        <span id="cp-amount" style="font-size:28px;color:#b71c1c;font-weight:bold;display:block;">\u00a50.00</span>
+        <span id="cp-status" style="font-size:14px;font-weight:bold;color:#c90;border:2px solid currentColor;padding:3px 10px;border-radius:4px;display:inline-block;margin-top:4px;">[ 待兑换 ]</span>
+      </div>
+    </div>
+    <div style="font-size:13px;color:#888;margin-bottom:12px;">大写金额：<span id="cp-cn" style="color:#555;font-weight:600;"></span></div>
+    <div style="border-bottom:1px solid #ddd;margin-bottom:18px;"></div>
+    <div style="font-size:14px;color:#333;line-height:2.2;">
+      <div>出票银行：<span id="cp-atm"></span></div>
+      <div>卡　　号：<span id="cp-card"></span></div>
+      <div>日　　期：<span id="cp-date"></span></div>
+    </div>
+    <div id="cp-cancel" style="display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-15deg);font-size:48px;color:#e74c3c;border:4px solid #e74c3c;padding:10px 30px;border-radius:8px;opacity:0.7;pointer-events:none;">已 注 销</div>
+  </div>
+  <div style="position:absolute;bottom:14px;left:28px;right:28px;display:flex;justify-content:space-between;font-size:11px;color:#bbb;">
+    <span>InvestSim 支票系统 v1.0 | 仅供投资模拟使用</span>
+    <span>Generated: 2026-05-31</span>
+  </div>
+</div>
+</body>
+</html>

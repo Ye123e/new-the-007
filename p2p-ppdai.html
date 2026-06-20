@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>拍拍贷 - P2P借贷平台</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#0a0e17; color:#e0e0e0; min-height:100vh; }
+.header { background:linear-gradient(135deg,#1e88e5,#1e88e599); padding:20px 24px; display:flex;align-items:center;gap:14px; }
+.header-icon { width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px; }
+.header-info h1 { font-size:22px;color:#fff; }
+.header-info p { font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px; }
+.container { max-width:900px;margin:0 auto;padding:16px; }
+.login-box { background:#131823;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:28px;margin-top:20px;text-align:center; }
+.login-box h2 { font-size:18px;margin-bottom:12px;color:#1e88e5; }
+.login-box p { font-size:13px;color:#888;margin-bottom:18px;line-height:1.6; }
+.login-btn { display:inline-block;padding:12px 40px;background:#1e88e5;color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600;transition:transform 0.2s; }
+.login-btn:hover { transform:scale(1.04); }
+.lock-chain { display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:16px;font-size:11px;color:#666; }
+.lock-dot { width:8px;height:8px;border-radius:50%;background:#444; }
+.lock-dot.active { background:#4caf50;box-shadow:0 0 6px #4caf50; }
+.lock-line { width:30px;height:2px;background:#333;position:relative; }
+.lock-line.active { background:#4caf50; }
+.main-app { display:none; }
+.nav-tabs { display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap; }
+.nav-tab { padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#888;transition:all 0.2s;flex:0 0 auto; }
+.nav-tab.active { background:#1e88e522;color:#1e88e5;border-color:#1e88e544;font-weight:600; }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+.stat-row { display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px; }
+.stat-card { background:#131823;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;text-align:center; }
+.stat-value { font-size:20px;font-weight:700;color:#1e88e5; }
+.stat-label { font-size:11px;color:#777;margin-top:2px; }
+.project-list { display:flex;flex-direction:column;gap:10px; }
+.project-card { background:#131823;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;transition:border-color 0.2s; }
+.project-card:hover { border-color:#1e88e533; }
+.proj-header { display:flex;justify-content:space-between;align-items:start;margin-bottom:10px; }
+.proj-title { font-size:15px;font-weight:600; }
+.proj-rate { text-align:right; }
+.proj-rate-val { font-size:22px;font-weight:700;color:#ff5252; }  # red=profit in China
+.proj-rate-label { font-size:11px;color:#777; }
+.proj-meta { display:flex;gap:16px;font-size:11px;color:#999;flex-wrap:wrap;margin-bottom:10px; }
+.proj-progress { margin-bottom:12px; }
+.prog-bar { height:6px;background:#222;border-radius:3px;overflow:hidden; }
+.prog-fill { height:100%;background:linear-gradient(90deg,#1e88e5,#1e88e588);border-radius:3px;transition:width 0.3s; }
+.proj-footer { display:flex;justify-content:space-between;align-items:center; }
+.risk-badge { display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600; }
+.risk-low { background:rgba(76,175,80,0.15);color:#4caf50; }
+.risk-mid { background:rgba(255,193,7,0.15);color:#ffc107; }
+.risk-high { background:rgba(244,67,54,0.15);color:#f44336; }
+.invest-form { display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05); }
+.invest-input { width:120px;padding:8px 10px;background:#1a1f2e;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:14px;outline:none; }
+.invest-input:focus { border-color:#1e88e5; }
+.btn-invest { padding:8px 20px;background:#1e88e5;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600; }
+.btn-invest:hover { opacity:0.85; }
+.btn-invest:disabled { opacity:0.4;cursor:not-allowed; }
+.inv-table { width:100%;border-collapse:collapse; }
+.inv-table th { text-align:left;font-size:11px;color:#777;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:500; }
+.inv-table td { padding:10px 6px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;vertical-align:middle; }
+.inv-status { padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600; }
+.status-progressing { background:rgba(33,150,243,0.15);color:#2196f3; }
+.status-repaid { background:rgba(76,175,80,0.15);color:#4caf50; }
+.status-defaulted { background:rgba(244,67,54,0.15);color:#f44336; }
+.profit-pos { color:#ff5252;font-weight:600; }  # red=profit
+.profit-neg { color:#00e676;font-weight:600; }  # green=loss
+.acct-summary { background:#131823;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:18px;margin-bottom:14px; }
+.acct-row { display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px; }
+.acct-row:last-child { border-bottom:none; }
+.acct-label { color:#888; }
+.acct-value { font-weight:600; }
+.repay-item { display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04); }
+.repay-date { font-size:11px;color:#888;width:90px; }
+.repay-amount { font-weight:600;font-size:13px; }
+.repay-status { font-size:10px;padding:2px 6px;border-radius:4px; }
+.notice { padding:10px 14px;background:rgba(255,152,0,0.06);border:1px solid rgba(255,152,0,0.15);border-radius:8px;font-size:11px;color:#ccc;line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-icon">📊</div>
+  <div class="header-info"><h1>拍拍贷</h1><p>Ppdai · 中国首家P2P平台，高收益伴随较高风险</p></div>
+</div>
+<div class="container">
+<div id="loginScreen" class="login-box">
+  <div class="lock-chain" id="lockChain"></div>
+  <h2>🔐 登录 拍拍贷</h2>
+  <p>安全登录以访问您的P2P投资账户<br>需要母锁令牌验证</p>
+  <button class="login-btn" onclick="doLogin()">🔑 验证并登录</button>
+  <p id="loginError" style="color:#f44336;margin-top:10px;display:none;"></p>
+</div>
+<div id="mainApp" class="main-app">
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-pTab="overview">📊 概览</div>
+    <div class="nav-tab" data-pTab="invest">💰 投标</div>
+    <div class="nav-tab" data-pTab="myinv">📋 我的投资</div>
+    <div class="nav-tab" data-pTab="repay">📅 回款计划</div>
+  </div>
+  <div id="pTab-overview" class="tab-panel active">
+    <div id="acctSummary" class="acct-summary"></div>
+    <div class="notice">⚠️ P2P投资有风险，本金可能因借款人违约而受损。拍拍贷历史违约率约8%，请根据自身风险承受能力合理配置。</div>
+  </div>
+  <div id="pTab-invest" class="tab-panel">
+    <div id="projectList" class="project-list"></div>
+  </div>
+  <div id="pTab-myinv" class="tab-panel">
+    <div id="myInvestments" style="overflow-x:auto;"><table class="inv-table"><thead><tr><th>项目</th><th>投资额</th><th>年化</th><th>期限</th><th>已收</th><th>状态</th><th>收益</th></tr></thead><tbody id="invBody"></tbody></table></div>
+  </div>
+  <div id="pTab-repay" class="tab-panel">
+    <div id="repaySchedule"></div>
+  </div>
+</div>
+</div>
+<script>
+const PLATFORM_KEY = 'ppdai';
+const PLATFORM_NAME = '拍拍贷';
+const PLATFORM_COLOR = '#1e88e5';
+const MIN_INVEST = 100;
+const FEE_RATE = 0.03;
+const DEFAULT_PROB = 0.08;
+var STORAGE_KEY = "investSimState_v13";
+var isLoggedIn = false;
+var RISK_LEVELS = ["中风险", "中高风险", "高风险"];
+function fmt(n) {
+  if (n == null || isNaN(n) || !isFinite(n)) return "0.00";
+  return n.toLocaleString("zh-CN", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function safeFixed(n, d) {
+  if (n == null || isNaN(n) || !isFinite(n)) return "0." + "0".repeat(d||2);
+  return Number(n).toFixed(d || 2);
+}
+
+function checkMasterLock() {
+  try {
+    var raw = localStorage.getItem("invest_sim_master");
+    if (!raw) return { ok:false, msg:"未找到母锁令牌，请先打开投资模拟器" };
+    var token = JSON.parse(raw);
+    var now = Date.now();
+    if (now - token.time > 3600000) return { ok:false, msg:"母锁令牌已过期(>1小时)，请重新打开模拟器" };
+    return { ok:true, token:token };
+  } catch(e) { return { ok:false, msg:"令牌解析失败" }; }
+}
+
+function renderLockChain() {
+  var c = document.getElementById("lockChain");
+  var lock = checkMasterLock();
+  c.innerHTML = '<span class="lock-dot '+(lock.ok?"active":"")+'"></span>'+
+    '<span class="lock-line '+(lock.ok?"active":"")+'"></span>'+
+    '<span class="lock-dot '+(lock.ok?"active":"")+'"></span>'+
+    '<span class="lock-line '+(lock.ok?"active":"")+'"></span>'+
+    '<span style="font-size:10px;color:'+(lock.ok?"#4caf50":"#666")+'">'+(lock.ok?"母锁→数据 已连接":"母锁→数据 断开")+'</span>';
+}
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function saveState(s) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch(e) {}
+}
+
+function getP2PData(state) {
+  if (!state.p2pInvestments) state.p2pInvestments = {};
+  if (!state.p2pInvestments[PLATFORM_KEY]) {
+    state.p2pInvestments[PLATFORM_KEY] = {
+      totalInvested: 0,
+      totalReceived: 0,
+      totalProfit: 0,
+      activeCount: 0,
+      completedCount: 0,
+      defaultedCount: 0,
+      investments: [],
+      repaySchedule: []
+    };
+  }
+  return state.p2pInvestments[PLATFORM_KEY];
+}
+
+function getCash() {
+  var s = loadState();
+  return s ? s.cash : 0;
+}
+
+function generateProjects() {
+  var templates = [{"title": "个人消费贷款", "borrower": "张*明", "purpose": "装修", "amount_range": [10000, 80000], "term_range": [3, 12], "rate_range": [6, 10]}, {"title": "小微企业周转", "borrower": "李*公司", "purpose": "采购原材料", "amount_range": [30000, 150000], "term_range": [6, 24], "rate_range": [8, 13]}, {"title": "车辆抵押贷款", "borrower": "王*华", "purpose": "购车", "amount_range": [20000, 120000], "term_range": [6, 36], "rate_range": [5, 9]}, {"title": "教育进修贷款", "borrower": "陈*静", "purpose": "MBA学费", "amount_range": [15000, 60000], "term_range": [12, 36], "rate_range": [7, 11]}, {"title": "医疗支出贷款", "borrower": "刘*强", "purpose": "手术费用", "amount_range": [5000, 40000], "term_range": [3, 12], "rate_range": [8, 14]}, {"title": "房产装修贷款", "borrower": "赵*芳", "purpose": "房屋翻新", "amount_range": [20000, 100000], "term_range": [6, 18], "rate_range": [6, 10]}, {"title": "创业启动资金", "borrower": "孙*伟", "purpose": "开餐厅", "amount_range": [50000, 200000], "term_range": [12, 24], "rate_range": [10, 16]}, {"title": "供应链金融", "borrower": "周*贸易", "purpose": "货款垫付", "amount_range": [80000, 300000], "term_range": [3, 6], "rate_range": [7, 11]}, {"title": "农业种植贷款", "borrower": "吴*农", "purpose": "购买种子化肥", "amount_range": [10000, 50000], "term_range": [6, 12], "rate_range": [9, 15]}, {"title": "信用卡代偿", "borrower": "郑*磊", "purpose": "信用卡还款", "amount_range": [5000, 30000], "term_range": [3, 6], "rate_range": [12, 20]}];
+  var projects = [];
+  var used = {};
+  // Pick 6 random projects
+  while (projects.length < 6 && Object.keys(used).length < templates.length) {
+    var idx = Math.floor(Math.random() * templates.length);
+    if (used[idx]) continue;
+    used[idx] = true;
+    var t = templates[idx];
+    var amt = t.amount_range[0] + Math.floor(Math.random() * (t.amount_range[1] - t.amount_range[0]));
+    var term = t.term_range[0] + Math.floor(Math.random() * (t.term_range[1] - t.term_range[0]));
+    var rate = t.rate_range[0] + Math.random() * (t.rate_range[1] - t.rate_range[0]);
+    var funded = Math.floor(Math.random() * amt * 0.7);  // 0-70% funded
+    var rIdx = Math.min(Math.floor((rate - 5) / 4), RISK_LEVELS.length - 1);
+    rIdx = Math.max(0, rIdx);
+    projects.push({
+      id: "proj_" + Date.now() + "_" + idx,
+      title: t.title,
+      borrower: t.borrower,
+      purpose: t.purpose,
+      amount: amt,
+      term: term,
+      rate: rate / 100,
+      funded: funded,
+      riskLevel: RISK_LEVELS[rIdx] || RISK_LEVELS[0]
+    });
+  }
+  return projects;
+}
+
+var currentProjects = [];
+
+function doLogin() {
+  var lock = checkMasterLock();
+  if (!lock.ok) {
+    var el = document.getElementById("loginError");
+    el.textContent = lock.msg;
+    el.style.display = "block";
+    renderLockChain();
+    return;
+  }
+  isLoggedIn = true;
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
+  currentProjects = generateProjects();
+  renderOverview();
+  renderProjects();
+  renderMyInvestments();
+  renderRepaySchedule();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  renderLockChain();
+  document.querySelectorAll(".nav-tab").forEach(function(tab) {
+    tab.addEventListener("click", function() {
+      document.querySelectorAll(".nav-tab").forEach(function(t){t.classList.remove("active")});
+      this.classList.add("active");
+      document.querySelectorAll(".tab-panel").forEach(function(p){p.classList.remove("active")});
+      var target = "pTab-" + this.getAttribute("data-pTab");
+      var panel = document.getElementById(target);
+      if (panel) panel.classList.add("active");
+      if (target === "pTab-overview") renderOverview();
+      if (target === "pTab-invest") renderProjects();
+      if (target === "pTab-myinv") renderMyInvestments();
+      if (target === "pTab-repay") renderRepaySchedule();
+    });
+  });
+});
+
+function renderOverview() {
+  var s = loadState();
+  if (!s) return;
+  var d = getP2PData(s);
+  var cash = s.cash || 0;
+  var container = document.getElementById("acctSummary");
+  var h = '';
+  h += '<div class="acct-row"><span class="acct-label">📱 平台</span><span class="acct-value">' + PLATFORM_NAME + '</span></div>';
+  h += '<div class="acct-row"><span class="acct-label">💰 模拟器现金</span><span class="acct-value">¥' + fmt(cash) + '</span></div>';
+  h += '<div class="acct-row"><span class="acct-label">📊 累计投资</span><span class="acct-value">¥' + fmt(d.totalInvested) + '</span></div>';
+  h += '<div class="acct-row"><span class="acct-label">✅ 已收回</span><span class="acct-value" style="color:#4caf50;">¥' + fmt(d.totalReceived) + '</span></div>';
+  h += '<div class="acct-row"><span class="acct-label">📈 累计收益</span><span class="acct-value" style="color:' + (d.totalProfit >= 0 ? "#ff5252" : "#00e676") + ';">' + (d.totalProfit >= 0 ? "+" : "") + '¥' + fmt(d.totalProfit) + '</span></div>';
+  h += '<div class="acct-row"><span class="acct-label">🔄 进行中</span><span class="acct-value">' + d.activeCount + ' 笔</span></div>';
+  h += '<div class="acct-row"><span class="acct-label">✔️ 已完成</span><span class="acct-value">' + d.completedCount + ' 笔</span></div>';
+  h += '<div class="acct-row"><span class="acct-label">⚠️ 已违约</span><span class="acct-value" style="color:#f44336;">' + d.defaultedCount + ' 笔</span></div>';
+  container.innerHTML = h;
+}
+
+function renderProjects() {
+  var container = document.getElementById("projectList");
+  if (!container || currentProjects.length === 0) return;
+  var cash = getCash();
+  var h = '';
+  currentProjects.forEach(function(p, i) {
+    var pct = Math.round(p.funded / p.amount * 100);
+    var remaining = p.amount - p.funded;
+    var riskClass = p.riskLevel.includes("高") ? "risk-high" : (p.riskLevel.includes("低") ? "risk-low" : "risk-mid");
+    h += '<div class="project-card">';
+    h += '<div class="proj-header">';
+    h += '<div><div class="proj-title">' + p.title + '</div>';
+    h += '<div class="proj-meta"><span>👤 ' + p.borrower + '</span><span>🎯 ' + p.purpose + '</span><span>⏱ ' + p.term + '个月</span></div></div>';
+    h += '<div class="proj-rate"><div class="proj-rate-val">' + safeFixed(p.rate * 100, 1) + '%</div><div class="proj-rate-label">预期年化</div></div>';
+    h += '</div>';
+    h += '<div class="proj-progress"><div class="prog-bar"><div class="prog-fill" style="width:' + pct + '%;"></div></div></div>';
+    h += '<div class="proj-footer">';
+    h += '<span><span class="risk-badge ' + riskClass + '">' + p.riskLevel + '</span> 剩余 ¥' + fmt(remaining) + ' / 总额 ¥' + fmt(p.amount) + '</span>';
+    h += '</div>';
+    h += '<div class="invest-form">';
+    h += '<input type="number" class="invest-input" id="invAmt_' + i + '" placeholder="最低 ¥' + MIN_INVEST + '" min="' + MIN_INVEST + '" step="100">';
+    h += '<button class="btn-invest" onclick="doInvest(' + i + ')" ' + (cash < MIN_INVEST ? "disabled" : "") + '>立即投标</button>';
+    h += '</div>';
+    h += '</div>';
+  });
+  container.innerHTML = h;
+}
+
+function doInvest(idx) {
+  // Lock check first
+  var lock = checkMasterLock();
+  if (!lock.ok) { alert("母锁验证失败: " + lock.msg); isLoggedIn = false; location.reload(); return; }
+
+  var p = currentProjects[idx];
+  if (!p) return;
+  var input = document.getElementById("invAmt_" + idx);
+  if (!input) return;
+  var amount = parseFloat(input.value);
+  if (!amount || amount < MIN_INVEST || isNaN(amount)) { alert("最低投资金额 ¥" + MIN_INVEST); return; }
+  if (amount > (p.amount - p.funded)) { alert("不能超过剩余可投金额"); return; }
+
+  var s = loadState();
+  if (!s) return;
+  if ((s.cash || 0) < amount) { alert("模拟器现金不足！当前: ¥" + fmt(s.cash)); return; }
+
+  // Deduct cash
+  s.cash -= amount;
+
+  // Create investment record
+  var d = getP2PData(s);
+  var inv = {
+    id: "inv_" + Date.now(),
+    projectId: p.id,
+    title: p.title,
+    borrower: p.borrower,
+    amount: amount,
+    rate: p.rate,
+    term: p.term,
+    investedAt: Date.now(),
+    round: s.round || 0,
+    status: "progressing",
+    received: 0,
+    expectedReturn: amount * (1 + p.rate * p.term / 12),
+    profit: 0,
+    riskLevel: p.riskLevel,
+    nextRepaymentRound: (s.round || 0) + Math.ceil(p.term / (p.term > 6 ? p.term / 6 : 1)),
+    totalRepayments: p.term <= 6 ? p.term : Math.ceil(p.term / (p.term > 6 ? p.term / 6 : 1)),
+    repaidCount: 0
+  };
+  d.investments.push(inv);
+  d.totalInvested += amount;
+  d.activeCount += 1;
+
+  // Add to repayment schedule
+  var perPayment = inv.expectedReturn / inv.totalRepayments;
+  var startRound = s.round || 0;
+  for (var r = 0; r < inv.totalRepayments; r++) {
+    d.repaySchedule.push({
+      invId: inv.id,
+      title: p.title,
+      amount: perPayment,
+      principal: amount / inv.totalRepayments,
+      interest: perPayment - amount / inv.totalRepayments,
+      dueRound: startRound + (r + 1) * Math.max(1, Math.floor(p.term / inv.totalRepayments)),
+      status: "pending"
+    });
+  }
+
+  // Update project funding
+  p.funded += amount;
+
+  saveState(s);
+  alert("✅ 投资成功！\n项目: " + p.title + "\n金额: ¥" + fmt(amount) + "\n预期收益: ¥" + fmt(inv.expectedReturn - amount));
+  renderOverview();
+  renderProjects();
+  renderMyInvestments();
+  renderRepaySchedule();
+}
+
+function renderMyInvestments() {
+  var s = loadState();
+  if (!s) return;
+  var d = getP2PData(s);
+  var tbody = document.getElementById("invBody");
+  if (!tbody) return;
+  if (!d.investments || d.investments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#555;padding:20px;">暂无投资记录</td></tr>';
+    return;
+  }
+  var h = '';
+  d.investments.forEach(function(inv) {
+    var statusClass = inv.status === "repaid" ? "status-repaid" : (inv.status === "defaulted" ? "status-defaulted" : "status-progressing");
+    var statusText = inv.status === "repaid" ? "已结清" : (inv.status === "defaulted" ? "已违约" : "回款中");
+    var profitClass = inv.profit >= 0 ? "profit-pos" : "profit-neg";
+    h += '<tr>';
+    '<td>' + inv.title + '</td>';
+    h += '<td>¥' + fmt(inv.amount) + '</td>';
+    h += '<td>' + safeFixed(inv.rate * 100, 1) + '%</td>';
+    h += '<td>' + inv.term + '月</td>';
+    h += '<td>¥' + fmt(inv.received) + '</td>';
+    h += '<td><span class="' + statusClass + '">' + statusText + '</span></td>';
+    h += '<td class="' + profitClass + '">' + (inv.profit >= 0 ? "+" : "") + '¥' + fmt(inv.profit) + '</td>';
+    h += '</tr>';
+  });
+  tbody.innerHTML = h;
+}
+
+function renderRepaySchedule() {
+  var s = loadState();
+  if (!s) return;
+  var d = getP2PData(s);
+  var container = document.getElementById("repaySchedule");
+  if (!container) return;
+  if (!d.repaySchedule || d.repaySchedule.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#555;padding:30px;">暂无回款计划</div>';
+    return;
+  }
+  // Sort by dueRound ascending
+  var sorted = d.repaySchedule.slice().sort(function(a,b){ return a.dueRound - b.dueRound; });
+  var currentRound = s.round || 0;
+  var h = '<div style="margin-bottom:10px;font-size:12px;color:#888;">当前回合: ' + currentRound + ' | 共 ' + sorted.length + ' 条待收</div>';
+  sorted.forEach(function(r) {
+    var overdue = currentRound > r.dueRound && r.status === "pending";
+    var done = r.status === "paid";
+    var stClass = done ? "status-repaid" : (overdue ? "status-defaulted" : "status-progressing");
+    var stText = done ? "已到账" : (overdue ? "逾期" : "待收");
+    h += '<div class="repay-item">';
+    h += '<span><b>' + r.title + '</b></span>';
+    h += '<span class="repay-date">第' + r.dueRound + '回合</span>';
+    h += '<span class="repay-amount">¥' + fmt(r.amount) + '</span>';
+    h += '<span class="repay-status ' + stClass + '">' + stText + '</span>';
+    h += '</div>';
+  });
+  container.innerHTML = h;
+}
+
+function processP2PRepayments(roundNum) {
+  var s = loadState();
+  if (!s) return;
+  var d = getP2PData(s);
+  if (!d.repaySchedule) return;
+  var processed = 0;
+  d.repaySchedule.forEach(function(r) {
+    if (r.status !== "pending" || r.dueRound > roundNum) return;
+    // Check for default (probability-based)
+    var willDefault = Math.random() < DEFAULT_PROB;
+    if (willDefault) {
+      r.status = "defaulted";
+      // Mark investment as defaulted
+      var inv = d.investments.find(function(i){ return i.id === r.invId; });
+      if (inv && inv.status !== "defaulted") {
+        inv.status = "defaulted";
+        d.defaultedCount += 1;
+        d.activeCount = Math.max(0, d.activeCount - 1);
+      }
+    } else {
+      r.status = "paid";
+      // Add cash back with fee deduction
+      var netAmount = r.amount * (1 - FEE_RATE);
+      s.cash = (s.cash || 0) + netAmount;
+      d.totalReceived += netAmount;
+      // Update investment record
+      var inv = d.investments.find(function(i){ return i.id === r.invId; });
+      if (inv) {
+        inv.received = (inv.received || 0) + netAmount;
+        inv.profit = inv.received - inv.amount;
+        inv.repaidCount = (inv.repaidCount || 0) + 1;
+        // Check if fully repaid
+        if (inv.repaidCount >= inv.totalRepayments) {
+          inv.status = "repaid";
+          d.completedCount += 1;
+          d.activeCount = Math.max(0, d.activeCount - 1);
+          d.totalProfit += inv.profit;
+        }
+      }
+    }
+    processed++;
+  });
+  if (processed > 0) saveState(s);
+  return processed;
+}
+
+</script>
+</body>
+</html>
